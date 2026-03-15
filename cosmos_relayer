@@ -266,6 +266,7 @@ go version -m ./rly4
 chmod +x rly4
 
 sudo systemctl is-enabled chrony
+sudo systemctl start chrony
 sudo apt update && sudo apt install protobuf-compiler
 
 ############### START HERE ###############
