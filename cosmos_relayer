@@ -262,8 +262,11 @@ go install golang.org/x/vuln/cmd/govulncheck@latest
 govulncheck ./...
 
 go build -o "rly4_$(date +%s)" .
-chmod +x
+go version -m ./rly4
+chmod +x rly4
+
 sudo systemctl is-enabled chrony
+sudo apt update && sudo apt install protobuf-compiler
 
 ############### START HERE ###############
 go get cosmossdk.io/api@
