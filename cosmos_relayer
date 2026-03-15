@@ -247,6 +247,10 @@ path    github.com/cosmos/relayer/v2
         build   vcs.time=2025-04-03T18:49:41Z
         build   vcs.modified=true
 
+########################## Critical ##########################
+https://github.com/cosmos/ibc-go/security/advisories/GHSA-4wf3-5qj9-368v
+https://github.com/advisories/GHSA-22qq-3xwm-r5x4
+##############################################################
 git clone https://github.com/cosmos/relayer
 cd relayer
 git checkout main
