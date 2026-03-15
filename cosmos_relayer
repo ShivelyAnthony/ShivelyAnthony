@@ -267,6 +267,7 @@ chmod +x rly4
 
 sudo systemctl is-enabled chrony
 sudo systemctl start chrony
+watch -n 2 chronyc tracking
 sudo apt update && sudo apt install protobuf-compiler
 
 ############### START HERE ###############
