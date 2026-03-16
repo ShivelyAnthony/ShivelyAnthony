@@ -841,3 +841,7 @@ go get github.com/terra-money/core@latest
 go get github.com/classic-terra/core/v2@latest
 go get github.com/classic-terra/core@latest
 go get github.com/bandprotocol/chain/v3@latest
+
+#
+go get github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v10@latest
+
