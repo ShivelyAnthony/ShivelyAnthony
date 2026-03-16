@@ -845,3 +845,4 @@ go get github.com/bandprotocol/chain/v3@latest
 #
 go get github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v10@latest
 
+curl -s https://rest.cosmos.directory/cosmoshub/cosmos/ibc/apps/packetforward/v1/params
