@@ -848,3 +848,100 @@ go get github.com/bandprotocol/chain/v3@latest
 go get github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v10@latest
 
 curl -s https://rest.cosmos.directory/cosmoshub/cosmos/ibc/apps/packetforward/v1/params
+
+########################### Chain Template ###########################
+
+    gravity-bridge-3:
+      type: cosmos
+      value:
+        key-directory: /home/anthony/.relayer/keys/gravity-bridge-3
+        key: gravity-bridge-relayer-key
+        chain-id: gravity-bridge-3
+        rpc-addr: "https://gravitychain.io:26657"
+        backup-rpc-addrs: ["https://gravity-rpc.polkachu.com:443",
+        "https://rpc-gravitybridge-ia.cosmosia.notional.ventures",
+        "https://rpc.lavenderfive.com:443/gravitybridge",
+        "https://rpc.gravity.bh.rocks",
+        "https://gravity-rpc.ramuchi.tech",
+        "https://rpc-gravity-bridge-01.stakeflow.io",
+        "https://gravity-rpc.staketab.org:443",
+        "https://gravity-rpc.w3coins.io",
+        "https://rpc.g-bridge.bronbro.io:443",
+        "https://rpc.gravity-bridge-3.gravity.aviaone.com:443",
+        "https://rpc.gravity.citizenweb3.com",
+        "http://gravity-bridge-1-08.nodes.amhost.net:26657"]
+        account-prefix: gravity
+        keyring-backend: test
+        max-clock-drift: 6m
+        gas-adjustment: 1.1
+        #gas-prices: 0.0ugraviton,0.00020000000000000000958434720477185919662588275969028472900390625gravity0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,0.00020000000000000000958434720477185919662588275969028472900390625gravity0xdAC17F958D2ee523a2206206994597C13D831ec7
+        gas-prices: 0.035ugraviton
+        min-gas-amount: 1
+        max-gas-amount: 2489210
+        debug: false
+        timeout: 240s
+        max_block_time: 20s
+        block-timeout: 30s
+        output-format: json
+        sign-mode: direct
+        extra-codecs: []
+        coin-type: 118
+        signing-algorithm: secp256k1
+        broadcast-mode: sync
+        min-loop-duration: 1s
+        rpc-retry-attempts: 5
+        rpc-timeout: 90s
+        rpc-retry-delay: 20s
+        #rpc-cache-size: 500
+        rpc-rate-limit: 10
+        extension-options: []
+        feegrants: null
+        auto_register_counterparty_payee: true
+        trusting-period: 336h
+        circuit-breaker:
+          enabled: true
+          max-failures: 3
+          reset-timeout: 60s
+
+########################### Path Template ###########################
+
+    new_path:
+    #rly query channels  | grep -A 10 "STATE_OPEN"
+        src:
+          chain-id: 
+          client-id: 07-tendermint-
+          connection-id: connection-
+          channel-id: channel-
+          port-id: 
+          order: 
+          version: '{"fee_version":"ics29-1","app_version":"ics27-1"}'
+        dst:
+          chain-id: 
+          client-id: 07-tendermint-
+          connection-id: connection-
+          channel-id: channel-
+          port-id: 
+          order: 
+          version: '{"fee_version":"ics29-1","app_version":"ics27-1"}'
+        fee-middleware:
+            enabled: true
+            min-recv-fee: 
+            min-ack-fee: 
+            min-timeout-fee: 1u
+            register-payee: true
+            payee-address: 
+            counterparty-payee-address: 
+
+########################### Debugging ###########################
+Client State	IBC v8.8.0	Ensure you are connecting to chains running Cosmos SDK >= v0.50.0. Connecting to SDK v0.47 (IBC v7) will fail.
+Implication: If logs show WebSocket EOF errors, the flush stops because the relayer loses the subscription to new block events required to build the final MsgAcknowledgement.
+There were known issues in v0.38.10-v0.38.12 regarding P2P connection handling where nodes would occasionally drop inbound connections from relayers.
+
+curl -s "https://terra-classic-lcd.publicnode.com/cosmwasm/wasm/v1/contract/terra1l5zz8adtx8nk8tlwc8fpgvrtcjezxfdx5zl68n" | jq
+
+terrad query wasm list-contracts-by-code 6 --node https://terra-classic-rpc.publicnode.com:443
+
+terra1fwl2pj854662zt5daf9kf9ya8qkvxmsdcshps3
+terra1l5zz8adtx8nk8tlwc8fpgvrtcjezxfdx5zl68n
+terra1jg3kcktkqezhhpndrdxftmkkdsegynvtxr88v8
+
