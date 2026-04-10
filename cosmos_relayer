@@ -859,17 +859,8 @@ curl -s https://rest.cosmos.directory/cosmoshub/cosmos/ibc/apps/packetforward/v1
         chain-id: gravity-bridge-3
         rpc-addr: "https://gravitychain.io:26657"
         backup-rpc-addrs: ["https://gravity-rpc.polkachu.com:443",
-        "https://rpc-gravitybridge-ia.cosmosia.notional.ventures",
         "https://rpc.lavenderfive.com:443/gravitybridge",
-        "https://rpc.gravity.bh.rocks",
-        "https://gravity-rpc.ramuchi.tech",
-        "https://rpc-gravity-bridge-01.stakeflow.io",
-        "https://gravity-rpc.staketab.org:443",
-        "https://gravity-rpc.w3coins.io",
-        "https://rpc.g-bridge.bronbro.io:443",
-        "https://rpc.gravity-bridge-3.gravity.aviaone.com:443",
-        "https://rpc.gravity.citizenweb3.com",
-        "http://gravity-bridge-1-08.nodes.amhost.net:26657"]
+        "https://rpc.gravity.citizenweb3.com"]
         account-prefix: gravity
         keyring-backend: test
         max-clock-drift: 6m
