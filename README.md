@@ -1,7 +1,7 @@
 Github, seems interesting..
 
 io = {
-  "Age": "27",
+  "Age": "I don't feel like updating this, Epoch 863,222,400",
   "Status" : "Sorta Bored"
 }
 
