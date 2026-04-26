@@ -1,55 +1,78 @@
-https://aviaone.com/blockchains-service/mainnet/list/1/
-https://www.mintscan.io/
-https://mapofzones.com/home?columnKey=ibcVolume&period=24h
-http://coinhall.org/
-https://app.terraswap.io/swap?type=swap&from=uluna
-https://app.osmosis.zone/
-https://terra-classic-lcd.publicnode.com/swagger/#/
-https://publicnode.com/snapshots
-https://services.nodeshub.online/mainnet/terra/decentralization
-https://www.pyth.network/price-feeds
-https://docs.injective.network/infra/public-endpoints
-https://celat.one/chains?q=terra
-https://station.terraclassic.community/
-https://www.blockchain.com/explorer/api/exchange_rates_api
-https://terra-money.github.io/terra.py/core_modules/tx.html
-https://marketplace.apilayer.com/
+# A
+https://api.swapter.io/assets
 https://app.koyfin.com/
-http://bitnodes.io/nodes/?page=2
-https://mempool.space/
-https://cosmos.directory/terra/chain
-https://chainsco.pe/terra2/assets
-https://github.com/PulsarDataSolutions/IBC-Token-Data-Cosmos/blob/main/chain_node_domains_data.json
-https://docs.terra.money/learn/ibc/
-https://www.poloniex.com/trade/BTC_USDT
+https://app.osmosis.zone/
+https://app.terraswap.io/swap?type=swap&from=uluna
+https://apps.microsoft.com/detail/9pdxgncfsczv?hl=en-US&gl=US
+https://atomscan.com/
+https://aviaone.com/blockchains-service/mainnet/list/1/
+# B
+https://www.blockchain.com/explorer/api/exchange_rates_api
 https://bloxy.info/zh/address/0x52d87f22192131636f93c5ab18d0127ea52cb641
+http://bitnodes.io/nodes/?page=2
+# C
+https://celat.one/chains?q=terra
+https://chainsco.pe/terra2/assets
+http://coinhall.org/
+https://cosmos.directory/terra/chain
+https://cryptofees.info/
+https://cryptography.io/en/latest/x509/reference/#cryptography.x509.Certificate
+# D
+https://deps.dev/go/github.com%2Fterra-money%2Fcore%2Fv2/v2.12.4/requirements
+https://docs.injective.network/infra/public-endpoints
+https://docs.osmosis.zone/osmosis-core/asset-info
+https://docs.tendermint.com/master/nodes/validators.html
+https://docs.terra.money/learn/ibc/
+https://docs.terraswap.io/docs/how-to/mint-your-cw20-token/
+# E
 https://etherscan.io/token/0xd2877702675e6ceb975b4a1dff9fb7baf4c91ea9
+https://explorer.mainnet.aurora.dev/token/0x5ce9F0B6AFb36135b5ddBF11705cEB65E634A9dC
+# F
+https://fiatleak.com/usd
+https://finder.terra.money/
+# G
 https://www.geckoterminal.com/bsc/pools/0x34c422989df98e8369f28eb9799eac1be2df70d0
 https://github.com/jamesbachini/DEX-Arbitrage/blob/main/config/aurora.json
-https://finder.terra.money/
-https://ibc.luncgoblins.com/
-https://atomscan.com/
-https://github.com/sei-protocol/chain-registry/blob/main/ibc_info.json
-https://docs.terraswap.io/docs/how-to/mint-your-cw20-token/
-https://terranameservice.gitbook.io/terra-name-service-tns/implementation-and-architecture
-https://api.swapter.io/assets
-https://fiatleak.com/usd
-https://soramitsu.co.jp/
-https://vyntrex.io/
-https://cryptofees.info/
-https://explorer.mainnet.aurora.dev/token/0x5ce9F0B6AFb36135b5ddBF11705cEB65E634A9dC
-https://portchecker.co/
-https://www.ravennodes.com/nodes/
-https://cryptography.io/en/latest/x509/reference/#cryptography.x509.Certificate
-https://http3check.net/?host=google.com
-
-https://apps.microsoft.com/detail/9pdxgncfsczv?hl=en-US&gl=US
 https://github.com/phoenix-directive/core
-https://deps.dev/go/github.com%2Fterra-money%2Fcore%2Fv2/v2.12.4/requirements
-https://docs.tendermint.com/master/nodes/validators.html
-
+https://github.com/PulsarDataSolutions/IBC-Token-Data-Cosmos/blob/main/chain_node_domains_data.json
+https://github.com/sei-protocol/chain-registry/blob/main/ibc_info.json
+# H
+https://http3check.net/?host=google.com
+# I
+https://ibc.luncgoblins.com/
+# J
+# K
+# L
+# M
+https://mapofzones.com/home?columnKey=ibcVolume&period=24h
+https://marketplace.apilayer.com/
+https://mempool.space/
+https://www.mintscan.io/
+# N
+# O
+# P
+https://publicnode.com/snapshots
+https://www.poloniex.com/trade/BTC_USDT
+https://portchecker.co/
+https://www.pyth.network/price-feeds
+# Q
+# R
+https://www.ravennodes.com/nodes/
+# S
+https://services.nodeshub.online/mainnet/terra/decentralization
+https://soramitsu.co.jp/
 https://sqs.osmosis.zone/router/routes?tokenIn=uosmo&tokenOutDenom=ibc/BE1BB42D4BE3C30D50B68D7C41DB4DFCE9678E8EF8C539F6E6A9345048894FCC
-https://docs.osmosis.zone/osmosis-core/asset-info
+https://station.terraclassic.community/
+# T
+https://terra-classic-lcd.publicnode.com/swagger/#/
+https://terra-money.github.io/terra.py/core_modules/tx.html
+https://terranameservice.gitbook.io/terra-name-service-tns/implementation-and-architecture
+# U
+# V
+https://vyntrex.io/
+# X
+# Y
+# Z
 
 ############## Anthony R Shively 1997 Ohio, USA ##############
 ***Stable IBC 8.8 + Crypto 49
