@@ -1,14 +1,3 @@
-Github, seems interesting..
+Anthony R Shively Mercer Ohio 1997
 
-io = {
-  "Age": "I don't feel like updating this, Epoch 863,222,400",
-  "Status" : "Sorta Bored"
-}
-
-def what_to_do():
-  print('Somthing I guess', 'Maybe')
-what_to_do()
-
-I enjoy programming and learning about various things.
-
-Quantum Blockchains are quite engaging for discussions on philosophy.
+I use python in my free time.
