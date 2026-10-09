@@ -5,6 +5,7 @@ https://www.speedguide.net/downloads.php
 https://git-scm.com/install/windows
 https://cmake.org/download/
 https://github.com/PowerShell/PowerShell/releases/tag/v7.6.6
+OpenSSL Requires => Perl https://strawberryperl.com/
 
 Visual Studio Community 2026 & Desktop development with C++
 
