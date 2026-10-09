@@ -6,5 +6,7 @@ https://git-scm.com/install/windows
 https://cmake.org/download/
 https://github.com/PowerShell/PowerShell/releases/tag/v7.6.6
 
+Visual Studio Community 2026 & Desktop development with C++
+
 
 git clone --recursive https://github.com/microsoft/quicreach
