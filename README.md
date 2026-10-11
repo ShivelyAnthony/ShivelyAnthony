@@ -13,3 +13,4 @@ Visual Studio Community 2026 & Desktop development with C++
 
 git clone --recursive https://github.com/microsoft/quicreach
 
+EnablePMTUBDetect 1 \System\CurrentControlSet\Services\Tcpip\Pararameters
