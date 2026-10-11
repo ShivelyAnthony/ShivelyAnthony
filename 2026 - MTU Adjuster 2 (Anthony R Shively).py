@@ -10,6 +10,9 @@ import os
 import time
 import psutil
 import speedtest
+import socket
+import re
+from icmplib import ping
 #from rich.progress import track
 def dumps(file_name, data, i=None):
     if i != None:
@@ -44,11 +47,12 @@ def loads(file_name, i=None):
     except Exception as e:
         print("Issues with:", file_name, e)
     return (io)
-def scoring_output(name):
+def scoring_output(name, ipv):
     try:
         #iox[tn] = ([name, mtu, download, upload, ping, score])
         iox = loads(f"{name}.json")
         iox_t = {}
+        all_mtus = [values[1] for values in iox.values()]
         mtus = set([values[1] for values in iox.values()])
         for line in mtus:
             o_download = []
@@ -81,10 +85,15 @@ def scoring_output(name):
                 upload_index = iox.get(line)
             if max_download == iox.get(line)[2]:
                 download_index = iox.get(line)
-        print('MTU Max Download: ', download_index[0], download_index[1], download_index[2], download_index[3], download_index[4], download_index[5])
-        print('MTU Max Upload: ', upload_index[0], upload_index[1], upload_index[2], upload_index[3], upload_index[4], upload_index[5])
-        print('MTU Lowest Ping: ', ping_index[0], ping_index[1], ping_index[2], ping_index[3], ping_index[4], ping_index[5])
-        print('Max MTU Score: ', score_index[0], score_index[1], score_index[2], score_index[3], score_index[4], score_index[5])
+        print('MTU Max Download: ', download_index[0], download_index[1], download_index[2], download_index[3], download_index[4], download_index[5], all_mtus.count(download_index[1]))
+        print('MTU Max Upload: ', upload_index[0], upload_index[1], upload_index[2], upload_index[3], upload_index[4], upload_index[5], all_mtus.count(upload_index[1]))
+        print('MTU Lowest Ping: ', ping_index[0], ping_index[1], ping_index[2], ping_index[3], ping_index[4], ping_index[5], all_mtus.count(ping_index[1]))
+        print('Max MTU Score: ', score_index[0], score_index[1], score_index[2], score_index[3], score_index[4], score_index[5], all_mtus.count(score_index[1]))
+        ran_pick = [ping_index[1], score_index[1], upload_index[1], download_index[1]]
+        if all_mtus.count(ping_index[1]) > 1000:
+            iop = change_mtu(name, ipv, ping_index[1])
+            input('Program Finished: ', f"{name} {ping_index[1]}")
+        return(random.choice(ran_pick))
     except Exception as e:
         print('Scoring Output Issues: ', e)
 def scoring(name, mtu, download, upload, ping):
@@ -129,20 +138,34 @@ def change_mtu(name, ipv, mtu):
         return(b)
     except Exception as e:
         print('Changing MTU Issues:', e)
-        def ping_once(ip):
-            start = time.perf_counter()
-            r = subprocess.run(f"ping -n 1 -w 1000 {ip}", shell=True, capture_output=True, text=True)
-            elapsed = (time.perf_counter() - start) * 1000  # ms
-            up = r.returncode == 0
-            return up, elapsed
-def host_ping():
+def python_ping(name, mtu, source_ip):
     try:
-        print('1000x Pings')
-        for ip in ["172.19.0.1", "192.168.1.159", "192.168.1.170", "192.168.1.1"]:
-            up, ms = ping_once(ip)
-            print(f"{ip:<18} {'UP  ' if up else 'DOWN'}  {ms:.2f} ms")
+        iox = loads(f"{name}_router.json")
+        interval = 0.01
+        timeout = 0.5
+        h = ping("192.168.1.1", count=250, interval=interval, timeout=timeout, source=source_ip, privileged=False)
+        #stats = [interval, timeout, h.packets_sent, h.packets_received, h.packet_loss, h.min_rtt, h.avg_rtt, h.max_rtt, h.jitter]
+        #print(stats)
+        iox[time.time()] = ([mtu, interval, timeout, h.avg_rtt])
+        #all_mtu_total = [values[0] for values in iox.values()]
+        all_mtu = set([values[0] for values in iox.values()])
+        dumps(f"{name}_router.json", iox)
+        iox_t = {}
+        for line in all_mtu:
+            o = []
+            for line_x in iox:
+                if line == iox.get(line_x)[0]:
+                    o.append(iox.get(line_x)[3])
+            o_avg = (sum(o) / len(o))
+            iox_t[time.time()] = ([name, source_ip, line, o_avg])
+        iox = iox_t
+        min_avg = min(set([values[3] for values in iox.values()]))
+        for line in iox:
+            if min_avg == iox.get(line)[3]:
+                print('Lowest Router Ping: ', iox.get(line))
+        dumps(f"{name}_router_avg.json", iox)
     except Exception as e:
-        print('Host Ping Issues: ', e)
+        print('Python Ping Issues: ', e)
 def main():
     try:
         print('##### Anthonys MTU Adjuster #####')
@@ -225,6 +248,7 @@ def main():
                     step_range = 8
                     end_range = 1500
                     start_range = 576
+                    source_ip = '192.168.1.170'
                 elif a == '1':
                     ipv = 'IPV4'
                     step_range = 64
@@ -235,30 +259,38 @@ def main():
                     step_range = 32
                     end_range = 9014
                     start_range = 576
+                ip_source = next((a.address for a in psutil.net_if_addrs().get(name, []) if a.family == 2), None)
                 iu = get_mtu(name, ipv)
                 change_mtu(name, ipv, start_range)
                 work = list(range(start_range, (end_range + 1), step_range))
                 admin_error = 1
+                max_recheck = 0
                 a = iu
                 try:
                     while True:
-                        number = random.choice(work)
+                        if max_recheck > 4:
+                            max_recheck = 0
+                            number = num_max
+                        else:
+                            number = random.choice(work)
                         print(f"{name} Trying: {number}")
                         #a = get_mtu(name, ipv)
                         b = change_mtu(name, ipv, number)
                         #print(a, b, i)
                         if int(b) == int(number):
                             print(f"{name} {iu} Old: {a} => New: {b}")
+                            python_ping(name, b, ip_source)
                             download, upload, ping = speed_tester()
                             scoring(name, b, download, upload, ping)
                             #scoring(name, b, download, upload, ping)
                             #scoring(name, b, download, upload, ping)
-                            scoring_output(name)
+                            num_max = scoring_output(name, ipv)
                             a = b
                         else:
                             if admin_error == 1:
                                 print('Run As Admin')
                                 admin_error = 0
+                        max_recheck = (max_recheck + 1)
                 except KeyboardInterrupt:
                     print('Exited Loop')
                 iu_x = change_mtu(name, ipv, iu)
