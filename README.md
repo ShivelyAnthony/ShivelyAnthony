@@ -21,3 +21,5 @@ TcpAckFrequency 1
 TcpDelAckTicks 0
 TcpNoDelay 1
 TcpTimedWaitDelay 30
+FastSendDatagramThreshold 9000 (IP MTU L3)
+IPEnableRouter 1
