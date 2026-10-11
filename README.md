@@ -16,3 +16,8 @@ git clone --recursive https://github.com/microsoft/quicreach
 EnablePMTUBDetect 1 \System\CurrentControlSet\Services\Tcpip\Pararameters
 Stop Code: Driver IRQL Not Less Or Equal (Tcpip.sys blue screen crash)
 http://reddit.com/r/pcmasterrace/comments/1f8dssk/pc_crashes_randomly_when_playing_games_due_to/
+
+TcpAckFrequency 1
+TcpDelAckTicks 0
+TcpNoDelay 1
+TcpTimedWaitDelay 30
