@@ -90,9 +90,12 @@ def scoring_output(name, ipv):
         print('MTU Lowest Ping: ', ping_index[0], ping_index[1], ping_index[2], ping_index[3], ping_index[4], ping_index[5], all_mtus.count(ping_index[1]))
         print('Max MTU Score: ', score_index[0], score_index[1], score_index[2], score_index[3], score_index[4], score_index[5], all_mtus.count(score_index[1]))
         ran_pick = [ping_index[1], score_index[1], upload_index[1], download_index[1]]
-        if all_mtus.count(ping_index[1]) > 1000:
+        if all_mtus.count(ping_index[1]) > 25:
             iop = change_mtu(name, ipv, ping_index[1])
             input('Program Finished: ', f"{name} {ping_index[1]}")
+        elif all_mtus.count(score_index[1]) > 25:
+            iop = change_mtu(name, ipv, score_index[1])
+            input('Program Finished: ', f"{name} {score_index[1]}")
         return(random.choice(ran_pick))
     except Exception as e:
         print('Scoring Output Issues: ', e)
@@ -160,9 +163,12 @@ def python_ping(name, mtu, source_ip):
             iox_t[time.time()] = ([name, source_ip, line, o_avg])
         iox = iox_t
         min_avg = min(set([values[3] for values in iox.values()]))
-        for line in iox:
-            if min_avg == iox.get(line)[3]:
-                print('Lowest Router Ping: ', iox.get(line))
+        if 0 == int(min_avg):
+            print('Ping 0 Issues...Superquick')
+        else:
+            for line in iox:
+                if min_avg == iox.get(line)[3]:
+                    print('Lowest Router Ping: ', iox.get(line))
         dumps(f"{name}_router_avg.json", iox)
     except Exception as e:
         print('Python Ping Issues: ', e)
