@@ -197,10 +197,17 @@ def scoring_output(name, ipv):
         print('Min Load Temp:', load_temp_index[0], load_temp_index[1], load_temp_index[2], load_temp_index[3], load_temp_index[4], load_temp_index[5], int(load_temp_index[6]), load_temp_index[7], all_mtus.count(load_temp_index[1]))
         print('Max Load Temp Score:', load_temp_score_index[0], load_temp_score_index[1], load_temp_score_index[2], load_temp_score_index[3], load_temp_score_index[4], load_temp_score_index[5], int(load_temp_score_index[6]), load_temp_score_index[7], all_mtus.count(load_temp_index[1]))
         ran_pick = [ping_index[1], score_index[1], upload_index[1], download_index[1], load_temp_index[1], load_temp_score_index[1]]
+        quick_index = {ping_index[1] : ping_index[0],
+                       score_index[1] : score_index[0],
+                       upload_index[1] : upload_index[0],
+                       download_index[1] : download_index[0],
+                       load_temp_index[1] : load_temp_index[0],
+                       load_temp_score_index[1] : load_temp_score_index[0]}
         if all_mtus.count(load_temp_score_index[1]) > 50:
             iop = change_mtu(name, ipv, load_temp_score_index[1])
             input('Program Finished: ', name, load_temp_score_index[1])
-        return(random.choice(ran_pick))
+        quick_pick = random.choice(ran_pick)
+        return(quick_pick, quick_index.get(quick_pick))
     except Exception as e:
         print('Scoring Output Issues: ', e)
         traceback.print_exc()
@@ -212,6 +219,7 @@ def scoring(name, mtu, download, upload, ping):
     g2_score = (score / g2)
     iox[tn] = ([name, mtu, download, upload, ping, score, g2, g2_score])
     dumps(f"{name}.json", iox)
+    return(tn)
 def speed_tester():
     try:
         st = speedtest.Speedtest()
@@ -323,6 +331,31 @@ def no_internet_boot():
         print('')
     except Exception as e:
         print('No Internet Boot Issues: ', e)
+def pair_mode_settings(name, mtu, ipv, stamp, devices, u=None):
+    try:
+        #Name = Wifi
+        #MTU = 1500
+        #IPV = IPV4
+        #Stamp = time.time()
+        #Devices = ['Hypomux', 'Wifi']
+        #U = time.time() from Best Plot
+        iox_pair = loads(f"{name}_pairmode.json")
+        if u == None:
+            #Record MTU Devices
+            device_record = []
+            for line_a in devices:
+                device_mtu = get_mtu(line_a, ipv)
+                device_record.append([line_a, device_mtu])
+            iox_pair[stamp] = ([name, mtu, device_record])
+            dumps(f"{name}_pairmode.json", iox_pair)
+        else:
+            if u in iox_pair:
+                device_record_read = iox_pair.get(u)[2]
+                for line_b in device_record_read:
+                    change_mtu(line_b[0], ipv, line_b[1])
+                print('Best Setting: ', name, mtu, device_record_read)
+    except Exception as e:
+        print('Pair Mode Setting Issues:', e)
 def main():
     try:
         print('##### Anthonys MTU Adjuster #####')
@@ -344,6 +377,7 @@ def main():
                 print('')
                 print('***** Testing Range *****')
                 print('z: Skip Testing And Set MTU')
+                print('y: MTU Pair Mode')
                 print('0: Custom Value')
                 print('1: IPV4 576 => 9014 (Jumbo Frame) Steps of 64')
                 print('2: IPV4 576 => 9014 (Jumbo Frame) Steps of 32')
@@ -416,10 +450,26 @@ def main():
                     step_range = 32
                     end_range = 9014
                     start_range = 576
+                elif a == 'y':
+                    pair_mode = 1
+                    interface_list = []
+                    ipv = 'IPV4'
+                    start_range = 576
+                    end_range = int(input('End Range: '))
+                    step_range = int(input('In Steps 1,2,3,8,16,32: '))
+                    interface_x = list(psutil.net_if_addrs().keys())
+                    device_list_work = {}
+                    for line in interface_x:
+                        confirm = input(f"Pair Interface {line} Y/N: ")
+                        if confirm.lower() == 'y':
+                            interface_list.append(line)
+                            end_range1 = int(input('Max MTU Size: '))
+                            work1 = list(range(start_range, (end_range1 + step_range), step_range))
+                            device_list_work[line] = (work1)
                 ip_source = next((a.address for a in psutil.net_if_addrs().get(name, []) if a.family == 2), None)
                 iu = get_mtu(name, ipv)
                 change_mtu(name, ipv, start_range)
-                work = list(range(start_range, (end_range + 1), step_range))
+                work = list(range(start_range, (end_range + step_range), step_range))
                 admin_error = 1
                 error1 = 0
                 max_recheck = 0
@@ -429,10 +479,15 @@ def main():
                         if max_recheck > 4:
                             max_recheck = 0
                             number = num_max
+                            if pair_mode == 1:
+                                pair_mode_settings(name, b, ipv, n, interface_list, num_timestamp)
                         else:
                             number = random.choice(work)
                         print(f"{name} Trying: {number}")
                         b = change_mtu(name, ipv, number)
+                        if pair_mode == 1:
+                            for line in device_list_work:
+                                xi = change_mtu(line, ipv, random.choice(device_list_work[line]))
                         if int(b) == int(number):
                             print(f"{name} {iu} Old: {a} => New: {b}")
                             python_ping(name, b, ip_source)
@@ -451,8 +506,10 @@ def main():
                                     no_internet_boot()
                                     error1 == 1
                                 continue
-                            scoring(name, b, download, upload, ping)
-                            num_max = scoring_output(name, ipv)
+                            n = scoring(name, b, download, upload, ping)
+                            if pair_mode == 1:
+                                pair_mode_settings(name, b, ipv, n, interface_list)
+                            num_max, num_timestamp = scoring_output(name, ipv)
                             a = b
                         else:
                             if admin_error == 1:
