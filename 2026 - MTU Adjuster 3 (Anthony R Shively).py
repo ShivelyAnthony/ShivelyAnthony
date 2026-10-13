@@ -214,7 +214,7 @@ def scoring(name, mtu, download, upload, ping):
     g2_score = (score / g2)
     iox[tn] = ([name, mtu, download, upload, ping, score, g2, g2_score])
     dumps(f"{name}.json", iox)
-    return(tn)
+    return(tn, g2_score)
 def speed_tester():
     try:
         st = speedtest.Speedtest()
@@ -297,7 +297,6 @@ def no_internet_boot():
             states[c.status] = states.get(c.status, 0) + 1
         for state, count in sorted(states.items()):
             print(f"{state}: {count}")
-
         print('')
         ioy = {}
         print('Ipv4 => Subnet => Router & DNS => ISP/Internet => DNS => Ipv4/Ipv6 => Server')
@@ -410,6 +409,80 @@ def pair_mode_settings(name, mtu, ipv, stamp, devices, u=None):
     except Exception as e:
         print('Pair Mode Setting Issues:', e, name, mtu, stamp)
         traceback.print_exc()
+def multiple_avg_data(iox, multiple, value_x, type):
+    try:
+        #iox is a dict, multiple is reoccuring number set() - Location, value_x is a changing score Location
+        v1 = set([values[multiple] for values in iox.values()])
+        v1_dic = {}
+        for line in v1:
+            v1_list = []
+            for line_x in iox:
+                if line == iox.get(line_x)[multiple]:
+                    v1_list.append(iox.get(line_x)[value_x])
+            v1_dic[line] = (sum(v1_list) / len(v1_list))
+        if type == 'min':
+            v1_values = min(list(v1_dic.values()))
+        elif type == 'max':
+            v1_values = max(list(v1_dic.values()))
+        for line in v1_dic:
+            if v1_values == v1_dic.get(line):
+                v1_best = line
+        return(v1_best)
+    except Exception as e:
+        print('Multiple Avg Data Issues:', e)
+# Run intilization Devices + Current Adapter as a list
+def get_buffer(name, type):
+    try:
+        ps = (
+            f'Get-NetAdapterAdvancedProperty -Name "{name}" '
+            f'| Where-Object {{ $_.DisplayName -match "Buffer" }} '
+            f'| ForEach-Object {{ "$($_.DisplayName)=$($_.DisplayValue)" }}'
+        )
+        result = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True)
+        buffers = {}
+        for line in result.stdout.strip().splitlines():
+            if "=" in line:
+                key, val = line.split("=", 1)
+                buffers[key.strip()] = int(val.strip())
+        r_x = buffers.get("Receive Buffers", 0)
+        t_x = buffers.get("Transmit Buffers", 0)
+        if type == 'r':
+            return(r_x)
+        elif type == 't':
+            return(t_x)
+    except Exception as e:
+        print('Get Buffer Issues:', e)
+def update_buffer(name, type, value_x):
+    try:
+        rx_cmd = (
+            f'Set-NetAdapterAdvancedProperty -Name "{name}" '
+            f'-DisplayName "Receive Buffers" -DisplayValue {value_x}'
+        )
+        tx_cmd = (
+            f'Set-NetAdapterAdvancedProperty -Name "{name}" '
+            f'-DisplayName "Transmit Buffers" -DisplayValue {value_x}'
+        )
+        if type == 'r':
+            result_type = 'Recieve'
+            old_buffer = get_buffer(name, 'r')
+            result = subprocess.run(["powershell", "-NoProfile", "-Command", rx_cmd], capture_output=True, text=True)
+        elif type == 't':
+            result_type = 'Transmit'
+            old_buffer = get_buffer(name, 't')
+            result = subprocess.run(["powershell", "-NoProfile", "-Command", tx_cmd], capture_output=True, text=True)
+        print(f'{name} Swapped {result_type} Buffer {old_buffer} : {value_x} => {result}')
+    except Exception as e:
+        print('Update Buffer Issues:', e)
+def buffers(name, stamp, n_score):
+    try:
+        iox = loads(f"{name}_buffers.json")
+        iox[stamp] = ([get_buffer(name, 'r'), get_buffer(name, 't'), n_score])
+        dumps(f"{name}_buffers.json", iox)
+        receive_buffer_best = multiple_avg_data(iox, 0, 2, 'max')
+        transmit_buffer_best = multiple_avg_data(iox, 1, 2, 'max')
+        return(receive_buffer_best, transmit_buffer_best)
+    except Exception as e:
+        print('Buffer Issues: ', e)
 def main():
     try:
         print('##### Anthonys MTU Adjuster #####')
@@ -418,6 +491,7 @@ def main():
         print('cd into folder')
         print('python "2026 - Mtu(press tab)"')
         print('Jumbo Ethernet Frames & Hyper-V 65536')
+        print('10 Gigabit Server Adapters: Transmit Buffers 16384')
         print('')
         interfaces = list(psutil.net_if_addrs().keys())
         print(interfaces)
@@ -425,6 +499,7 @@ def main():
             print('')
             confirm = input(f"Benchmark {name} Y/N: ")
             if confirm.lower() == 'y':
+                all_interfaces = [name]
                 print('')
                 print('')
                 print('########################################')
@@ -433,6 +508,7 @@ def main():
                 print('***** Testing Range *****')
                 print('z: Skip Testing And Set MTU')
                 print('y: MTU Pair Mode')
+                print('x: Change Adapters Buffer')
                 print('0: Custom Value')
                 print('1: IPV4 576 => 9014 (Jumbo Frame) Steps of 64')
                 print('2: IPV4 576 => 9014 (Jumbo Frame) Steps of 32')
@@ -464,6 +540,11 @@ def main():
                     z1 = int(input('MTU Set: '))
                     k = change_mtu(name, ipv, z1)
                     print(f"{name} Set MTU: {k}")
+                elif a == 'x':
+                    type = input('R/T: ').lower()
+                    value_x = int(input('Value: '))
+                    update_buffer(name, type, value_x)
+                    continue
                 elif a == '3':
                     ipv = 'IPV4'
                     step_range = 1
@@ -514,6 +595,8 @@ def main():
                     step_range = int(input('In Steps 1,2,3,8,16,32: '))
                     interface_x = list(psutil.net_if_addrs().keys())
                     device_list_work = {}
+                    min_buffer_size = 32
+                    max_buffer_dic = {}
                     for line in interface_x:
                         confirm = input(f"Pair Interface {line} Y/N: ")
                         if confirm.lower() == 'y':
@@ -521,10 +604,18 @@ def main():
                             end_range1 = int(input('Max MTU Size: '))
                             work1 = list(range(start_range, (end_range1 + step_range), step_range))
                             device_list_work[line] = (work1)
+                            all_interfaces.append(line)
+                    for line in all_interfaces:
+                        confirm = input(f"Change Buffer Sizes on {line} Y/N: ")
+                        if confirm.lower() == 'y':
+                            max_buffer = int(input(f'{line} Max Buffer Size:'))
+                            work2 = list(range(min_buffer_size, (max_buffer + step_range), step_range))
+                            max_buffer_dic[line] = (work2)
                 ip_source = next((a.address for a in psutil.net_if_addrs().get(name, []) if a.family == 2), None)
                 iu = get_mtu(name, ipv)
                 change_mtu(name, ipv, start_range)
                 work = list(range(start_range, (end_range + step_range), step_range))
+                buff_change = 0
                 admin_error = 1
                 error1 = 0
                 max_recheck = 0
@@ -581,11 +672,27 @@ def main():
                                     print('Computer\\HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters')
                                     print('Running CMD in admin using Powershell you can run >>> Get-NetAdapter | Select-Object Name, InterfaceGuid, InterfaceDescription')
                                     print('Also can run >>> Get-NetIPInterface | Format-Table InterfaceAlias,AddressFamily,NlMtu,ConnectionState')
+                                    print('Buffer Issues >>> Get-NetAdapterAdvancedProperty -Name "Ethernet" | Where-Object { $_.DisplayName -match "Buffer" }')
+                                    print('Sometimes Wifi has 0 buffers meaning no limitation')
+                                    print('Device Manager => Network Adapters')
                                     time.sleep(10)
                                     no_internet_boot()
                                     error1 == 1
                                 continue
-                            n = scoring(name, b, download, upload, ping)
+                            n, g2_score = scoring(name, b, download, upload, ping)
+                            best_buffers = []
+                            if len(max_buffer_dic) > 1:
+                                for line in all_interfaces:
+                                    r, t = buffers(line, n, g2_score)
+                                    best_buffers.append([line, r, t])
+                                    if buff_change < 24:
+                                        update_buffer(name, 'r', random.choice(max_buffer_dic.get(line)))
+                                        update_buffer(name, 't', random.choice(max_buffer_dic.get(line)))
+                            print('Adapter, Recieve, Transmit:', best_buffers)
+                            if buff_change < 24:
+                                buff_change = (buff_change + 1)
+                            else:
+                                buff_change = 0
                             if pair_mode == 1:
                                 pair_mode_settings(name, b, ipv, n, interface_list)
                             num_max = scoring_output(name, ipv)
