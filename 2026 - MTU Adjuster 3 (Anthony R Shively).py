@@ -144,6 +144,7 @@ def scoring_output(name, ipv):
     try:
         #iox[tn] = ([name, mtu, download, upload, ping, score])
         iox = loads(f"{name}.json")
+        ioz = iox
         iox_t = {}
         all_mtus = [values[1] for values in iox.values()]
         mtus = set([values[1] for values in iox.values()])
@@ -197,24 +198,18 @@ def scoring_output(name, ipv):
         print('Min Load Temp:', load_temp_index[0], load_temp_index[1], load_temp_index[2], load_temp_index[3], load_temp_index[4], load_temp_index[5], int(load_temp_index[6]), load_temp_index[7], all_mtus.count(load_temp_index[1]))
         print('Max Load Temp Score:', load_temp_score_index[0], load_temp_score_index[1], load_temp_score_index[2], load_temp_score_index[3], load_temp_score_index[4], load_temp_score_index[5], int(load_temp_score_index[6]), load_temp_score_index[7], all_mtus.count(load_temp_index[1]))
         ran_pick = [ping_index[1], score_index[1], upload_index[1], download_index[1], load_temp_index[1], load_temp_score_index[1]]
-        quick_index = {ping_index[1] : ping_index[0],
-                       score_index[1] : score_index[0],
-                       upload_index[1] : upload_index[0],
-                       download_index[1] : download_index[0],
-                       load_temp_index[1] : load_temp_index[0],
-                       load_temp_score_index[1] : load_temp_score_index[0]}
         if all_mtus.count(load_temp_score_index[1]) > 50:
             iop = change_mtu(name, ipv, load_temp_score_index[1])
             input('Program Finished: ', name, load_temp_score_index[1])
         quick_pick = random.choice(ran_pick)
-        return(quick_pick, quick_index.get(quick_pick))
+        return(quick_pick)
     except Exception as e:
         print('Scoring Output Issues: ', e)
         traceback.print_exc()
 def scoring(name, mtu, download, upload, ping):
     iox = loads(f"{name}.json")
     score = (((download * .5) + (upload * .5)) / (ping))
-    tn = time.time()
+    tn = str(time.time())
     g1, g2 = get_temps()
     g2_score = (score / g2)
     iox[tn] = ([name, mtu, download, upload, ping, score, g2, g2_score])
@@ -339,23 +334,82 @@ def pair_mode_settings(name, mtu, ipv, stamp, devices, u=None):
         #Stamp = time.time()
         #Devices = ['Hypomux', 'Wifi']
         #U = time.time() from Best Plot
+        iox = loads(f"{name}.json")
         iox_pair = loads(f"{name}_pairmode.json")
+        trio = loads(f"{name}_trio.json")
         if u == None:
+            trio_list = [name, mtu]
             #Record MTU Devices
             device_record = []
             for line_a in devices:
                 device_mtu = get_mtu(line_a, ipv)
-                device_record.append([line_a, device_mtu])
+                device_record.append([line_a, device_mtu, iox.get(stamp)[7]])
+                trio_list.append(line_a)
+                trio_list.append(device_mtu)
+            trio_list.append(iox.get(stamp)[7])
             iox_pair[stamp] = ([name, mtu, device_record])
+            trio[stamp] = (trio_list)
             dumps(f"{name}_pairmode.json", iox_pair)
+            # trio[time.time()] = ([Ethernet 1577 Wifi 756 HypoMux 586 0.0008])
+            dumps(f"{name}_trio.json", trio)
         else:
-            if u in iox_pair:
-                device_record_read = iox_pair.get(u)[2]
-                for line_b in device_record_read:
-                    change_mtu(line_b[0], ipv, line_b[1])
-                print('Best Setting: ', name, mtu, device_record_read)
+            #Change to a json format for each device (Ethernet_Wifi)
+            if len(trio.get(next(iter(trio)))) == 7:
+                trio1 = set([values[1] for values in trio.values()])
+                trio1_all = [values[1] for values in trio.values()]
+                trio2 = set([values[3] for values in trio.values()])
+                trio2_all = [values[3] for values in trio.values()]
+                trio3 = set([values[5] for values in trio.values()])
+                trio3_all = [values[5] for values in trio.values()]
+                trio1_dic = {}
+                for line in trio1:
+                    trio1x = []
+                    for line_x in trio:
+                        if line == trio.get(line_x)[1]:
+                            trio1x.append(trio.get(line_x)[6])
+                    trio1_best = (sum(trio1x) / len(trio1x))
+                    trio1_dic[line] = trio1_best
+                trio1_max = max(list(trio1_dic.values()))
+                for line in trio1_dic:
+                    if trio1_dic.get(line) == trio1_max:
+                        trio1_best = line
+                trio2_dic = {}
+                for line in trio2:
+                    trio2x = []
+                    for line_x in trio:
+                        if line == trio.get(line_x)[3]:
+                            trio2x.append(trio.get(line_x)[6])
+                    trio2_best = (sum(trio2x) / len(trio2x))
+                    trio2_dic[line] = trio2_best
+                trio2_max = max(list(trio2_dic.values()))
+                for line in trio2_dic:
+                    if trio2_dic.get(line) == trio2_max:
+                        trio2_best = line
+                trio3_dic = {}
+                for line in trio3:
+                    trio3x = []
+                    for line_x in trio:
+                        if line == trio.get(line_x)[5]:
+                            trio3x.append(trio.get(line_x)[6])
+                    trio3_avg = (sum(trio3x) / len(trio3x))
+                    trio3_dic[line] = trio3_avg
+                trio3_max = max(list(trio3_dic.values()))
+                for line in trio3_dic:
+                    if trio3_dic.get(line) == trio3_max:
+                        trio3_best = line
+                v1 = trio.get(next(iter(trio)))[0]
+                v2 = trio.get(next(iter(trio)))[2]
+                v3 = trio.get(next(iter(trio)))[4]
+                print('Best Setting: ', v1, trio1_best, v2, trio2_best, v3, trio3_best)
+                change_mtu(v1, ipv, trio1_best)
+                change_mtu(v2, ipv, trio2_best)
+                change_mtu(v3, ipv, trio3_best)
+                if trio1_all.count(trio1_best) > 500 and trio2_all.count(trio2_best) > 500 and trio3_all.count(trio3_best) > 500:
+                    input('Pairing Is Completed.')
+            return(trio1_best)
     except Exception as e:
-        print('Pair Mode Setting Issues:', e)
+        print('Pair Mode Setting Issues:', e, name, mtu, stamp)
+        traceback.print_exc()
 def main():
     try:
         print('##### Anthonys MTU Adjuster #####')
@@ -363,6 +417,7 @@ def main():
         print('Run As Admin To Change MTU')
         print('cd into folder')
         print('python "2026 - Mtu(press tab)"')
+        print('Jumbo Ethernet Frames & Hyper-V 65536')
         print('')
         interfaces = list(psutil.net_if_addrs().keys())
         print(interfaces)
@@ -474,20 +529,44 @@ def main():
                 error1 = 0
                 max_recheck = 0
                 a = iu
+                zen = 0
                 try:
                     while True:
-                        if max_recheck > 4:
+                        if max_recheck > 3:
                             max_recheck = 0
-                            number = num_max
+                            #number = num_max
                             if pair_mode == 1:
-                                pair_mode_settings(name, b, ipv, n, interface_list, num_timestamp)
+                                number = pair_mode_settings(name, b, ipv, n, interface_list, 1)
+                                zen = 1
+                        elif max_recheck == 3:
+                            if pair_mode == 1:
+                                v1 = work
+                                iop = loads(f"{name}_pairmode.json")
+                                v2 = set([values[1] for values in iop.values()])
+                                try:
+                                    for line in v2:
+                                        if line in work:
+                                            v1.remove(line)
+                                except Exception as e:
+                                    pass
+                                if len(v1) > 1:
+                                    number = random.choice(v1)
+                                else:
+                                    number = num_max
                         else:
                             number = random.choice(work)
                         print(f"{name} Trying: {number}")
-                        b = change_mtu(name, ipv, number)
-                        if pair_mode == 1:
-                            for line in device_list_work:
-                                xi = change_mtu(line, ipv, random.choice(device_list_work[line]))
+                        if zen == 0:
+                            b = change_mtu(name, ipv, number)
+                            if pair_mode == 1:
+                                #ki_list = list(range(0, len(device_list_work)))
+                                #ki = random.choice(ki_list)
+                                #ki_key = device_list_work.keys()
+                                ki = random.choice(list(device_list_work.keys()))
+                                xi = change_mtu(ki, ipv, random.choice(device_list_work.get(ki)))
+                        else:
+                            b = number
+                            zen = 0
                         if int(b) == int(number):
                             print(f"{name} {iu} Old: {a} => New: {b}")
                             python_ping(name, b, ip_source)
@@ -509,7 +588,7 @@ def main():
                             n = scoring(name, b, download, upload, ping)
                             if pair_mode == 1:
                                 pair_mode_settings(name, b, ipv, n, interface_list)
-                            num_max, num_timestamp = scoring_output(name, ipv)
+                            num_max = scoring_output(name, ipv)
                             a = b
                         else:
                             if admin_error == 1:
