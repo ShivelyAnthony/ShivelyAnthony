@@ -148,7 +148,10 @@ try:
     #ax4.grid(axis='y', alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig("plot.png", dpi=300, bbox_inches="tight")
+    try:
+        plt.savefig("plot.png", dpi=300, bbox_inches="tight")
+    except:
+        pass
     plt.show()
     input('Exit')
 except Exception as e:
