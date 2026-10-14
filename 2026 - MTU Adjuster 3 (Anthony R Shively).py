@@ -13,6 +13,7 @@ import speedtest
 import socket
 import re
 import traceback
+import segno
 from icmplib import ping
 from PyLibreHardwareMonitor import Computer
 #from rich.progress import track
@@ -165,6 +166,13 @@ def scoring_output(name, ipv):
                     o_temp_score.append(iox.get(line_x)[7])
             iox_t[time.time()] = ([name, line, (sum(o_download) / len(o_download)), (sum(o_upload) / len(o_upload)), (sum(o_ping) / len(o_ping)), (sum(o_score) / len(o_score)), (sum(o_temp) / len(o_temp)), (sum(o_temp_score) / len(o_temp_score))])
         iox = iox_t
+        '''iox_7 = ([values[7] for values in iox.values()]).sort(reverse=True)
+        iox_t = {}
+        for line in iox_7:
+            for line_x in iox:
+                if line == iox.get(line_x)[7]:
+                    iox_t[line_x] = (iox.get(line_x))
+        iox = iox_t'''
         dumps(f"{name}_avg.json", iox)
         download_scores = [values[2] for values in iox.values()]
         upload_scores = [values[3] for values in iox.values()]
@@ -191,12 +199,14 @@ def scoring_output(name, ipv):
                 load_temp_index = iox.get(line)
             if max_load_temp_score == iox.get(line)[7]:
                 load_temp_score_index = iox.get(line)
-        print('MTU Max Download: ', download_index[0], download_index[1], download_index[2], download_index[3], download_index[4], download_index[5], int(download_index[6]), download_index[7], all_mtus.count(download_index[1]))
-        print('MTU Max Upload: ', upload_index[0], upload_index[1], upload_index[2], upload_index[3], upload_index[4], upload_index[5], int(upload_index[6]), upload_index[7], all_mtus.count(upload_index[1]))
-        print('MTU Lowest Ping: ', ping_index[0], ping_index[1], ping_index[2], ping_index[3], ping_index[4], ping_index[5], int(ping_index[6]), ping_index[7], all_mtus.count(ping_index[1]))
-        print('Max MTU Score: ', score_index[0], score_index[1], score_index[2], score_index[3], score_index[4], score_index[5], int(score_index[6]), score_index[7], all_mtus.count(score_index[1]))
-        print('Min Load Temp:', load_temp_index[0], load_temp_index[1], load_temp_index[2], load_temp_index[3], load_temp_index[4], load_temp_index[5], int(load_temp_index[6]), load_temp_index[7], all_mtus.count(load_temp_index[1]))
-        print('Max Load Temp Score:', load_temp_score_index[0], load_temp_score_index[1], load_temp_score_index[2], load_temp_score_index[3], load_temp_score_index[4], load_temp_score_index[5], int(load_temp_score_index[6]), load_temp_score_index[7], all_mtus.count(load_temp_index[1]))
+        ior = loads(f"{name}_output.json")
+        ior['Max Download'] = ([download_index[0], download_index[1], download_index[2], download_index[3], download_index[4], download_index[5], int(download_index[6]), download_index[7], all_mtus.count(download_index[1])])
+        ior['Max Upload'] = ([upload_index[0], upload_index[1], upload_index[2], upload_index[3], upload_index[4], upload_index[5], int(upload_index[6]), upload_index[7], all_mtus.count(upload_index[1])])
+        ior['Lowest Ping'] = ([ping_index[0], ping_index[1], ping_index[2], ping_index[3], ping_index[4], ping_index[5], int(ping_index[6]), ping_index[7], all_mtus.count(ping_index[1])])
+        ior['Max MTU Score'] = ([score_index[0], score_index[1], score_index[2], score_index[3], score_index[4], score_index[5], int(score_index[6]), score_index[7], all_mtus.count(score_index[1])])
+        ior['Min Load Temp'] = ([load_temp_index[0], load_temp_index[1], load_temp_index[2], load_temp_index[3], load_temp_index[4], load_temp_index[5], int(load_temp_index[6]), load_temp_index[7], all_mtus.count(load_temp_index[1])])
+        ior['Max Load Temp Score'] = ([load_temp_score_index[0], load_temp_score_index[1], load_temp_score_index[2], load_temp_score_index[3], load_temp_score_index[4], load_temp_score_index[5], int(load_temp_score_index[6]), load_temp_score_index[7], all_mtus.count(load_temp_index[1])])
+        dumps(f"{name}_output.json", ior)
         ran_pick = [ping_index[1], score_index[1], upload_index[1], download_index[1], load_temp_index[1], load_temp_score_index[1]]
         if all_mtus.count(load_temp_score_index[1]) > 50:
             iop = change_mtu(name, ipv, load_temp_score_index[1])
@@ -353,6 +363,12 @@ def pair_mode_settings(name, mtu, ipv, stamp, devices, u=None):
             dumps(f"{name}_trio.json", trio)
         else:
             #Change to a json format for each device (Ethernet_Wifi)
+            for line in trio:
+                try:
+                    j1 = trio.get(line)[3]
+                    j2 = trio.get(line)[5]
+                except:
+                    del trio[line]
             if len(trio.get(next(iter(trio)))) == 7:
                 trio1 = set([values[1] for values in trio.values()])
                 trio1_all = [values[1] for values in trio.values()]
@@ -399,7 +415,7 @@ def pair_mode_settings(name, mtu, ipv, stamp, devices, u=None):
                 v1 = trio.get(next(iter(trio)))[0]
                 v2 = trio.get(next(iter(trio)))[2]
                 v3 = trio.get(next(iter(trio)))[4]
-                print('Best Setting: ', v1, trio1_best, v2, trio2_best, v3, trio3_best)
+                print('Best Setting: ', v1, trio1_best, v2, trio2_best, v3, trio3_best, 'Check {Adapter}_.output.json for Full Info')
                 change_mtu(v1, ipv, trio1_best)
                 change_mtu(v2, ipv, trio2_best)
                 change_mtu(v3, ipv, trio3_best)
@@ -629,11 +645,17 @@ def main():
                             if pair_mode == 1:
                                 number = pair_mode_settings(name, b, ipv, n, interface_list, 1)
                                 zen = 1
-                        elif max_recheck == 3:
+                        elif max_recheck == 3 or max_recheck == 2:
                             if pair_mode == 1:
                                 v1 = work
                                 iop = loads(f"{name}_pairmode.json")
-                                v2 = set([values[1] for values in iop.values()])
+                                v2 = []
+                                for line in iop:
+                                    try:
+                                        v2.append(int(iop.get(line)[1]))
+                                    except:
+                                        pass
+                                v2 = list(set(v2))
                                 try:
                                     for line in v2:
                                         if line in work:
@@ -641,6 +663,7 @@ def main():
                                 except Exception as e:
                                     pass
                                 if len(v1) > 1:
+                                    print(f"{name} MTU To Process", len(v1))
                                     number = random.choice(v1)
                                 else:
                                     number = num_max
@@ -650,9 +673,6 @@ def main():
                         if zen == 0:
                             b = change_mtu(name, ipv, number)
                             if pair_mode == 1:
-                                #ki_list = list(range(0, len(device_list_work)))
-                                #ki = random.choice(ki_list)
-                                #ki_key = device_list_work.keys()
                                 ki = random.choice(list(device_list_work.keys()))
                                 xi = change_mtu(ki, ipv, random.choice(device_list_work.get(ki)))
                         else:
@@ -675,6 +695,17 @@ def main():
                                     print('Buffer Issues >>> Get-NetAdapterAdvancedProperty -Name "Ethernet" | Where-Object { $_.DisplayName -match "Buffer" }')
                                     print('Sometimes Wifi has 0 buffers meaning no limitation')
                                     print('Device Manager => Network Adapters')
+                                    print('>>> Get-Counter -ListSet * | Where-Object CounterSetName -match "Network" | Select-Object CounterSetName')
+                                    print('>>> https://mags.acm.org/communications/201203/?pg=48#pg48')
+                                    print('>>> https://www.youtube.com/watch?v=iSHFa4EXyjQ')
+                                    print('>>> netsh interface tcp set global initialRto=300 maxsynretransmissions=3')
+                                    print('>>> netsh int tcp set global pacingprofile=always')
+                                    print('>>> netsh int tcp show global')
+                                    print('>>> netsh int tcp set global ecncapability=enabled')
+                                    print('TcpAckFrequency 1 TcpDelAckTicks 0 TcpNoDelay 1 TcpTimedWaitDelay 30 FastSendDatagramThreshold 9000 (IP MTU L3)')
+                                    print('Sack0pts 1, Tcp1323Opts 2, EnablePMTUBHDetect 1')
+                                    qrcode = segno.make_qr('https://mags.acm.org/communications/201203/?pg=48#pg48')
+                                    qrcode.save('Mags.png', scale=10, )
                                     time.sleep(10)
                                     no_internet_boot()
                                     error1 == 1
@@ -688,7 +719,7 @@ def main():
                                     if buff_change < 24:
                                         update_buffer(name, 'r', random.choice(max_buffer_dic.get(line)))
                                         update_buffer(name, 't', random.choice(max_buffer_dic.get(line)))
-                            print('Adapter, Recieve, Transmit:', best_buffers)
+                                print('Adapter, Recieve, Transmit:', best_buffers)
                             if buff_change < 24:
                                 buff_change = (buff_change + 1)
                             else:
@@ -698,6 +729,7 @@ def main():
                             num_max = scoring_output(name, ipv)
                             a = b
                         else:
+                            print('Issues')
                             if admin_error == 1:
                                 print('Run As Admin')
                                 admin_error = 0
