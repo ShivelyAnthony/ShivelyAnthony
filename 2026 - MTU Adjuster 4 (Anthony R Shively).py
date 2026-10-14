@@ -344,7 +344,8 @@ def pair_mode_settings(name, mtu, ipv, stamp, devices, u=None):
                 trio_list.append(line_a)
                 trio_list.append(device_mtu)
             trio_list.append(iox.get(stamp)[7])
-            iox_pair[stamp] = ([name, mtu, device_record])
+            rto1, rto2 = rto_check()
+            iox_pair[stamp] = ([name, mtu, device_record, [rto1, rto2]])
             trio[stamp] = (trio_list)
             dumps(f"{name}_pairmode.json", iox_pair)
             # trio[time.time()] = ([Ethernet 1577 Wifi 756 HypoMux 586 0.0008])
@@ -403,7 +404,13 @@ def pair_mode_settings(name, mtu, ipv, stamp, devices, u=None):
                 v1 = trio.get(next(iter(trio)))[0]
                 v2 = trio.get(next(iter(trio)))[2]
                 v3 = trio.get(next(iter(trio)))[4]
-                print('Best Setting: ', v1, trio1_best, v2, trio2_best, v3, trio3_best, 'Check {Adapter}_.output.json for Full Info')
+                rto_iox = loads(f"{name}_rto.json")
+                rto_best = multiple_avg_data(rto_iox, 0, 2, 'max')
+                syn_best = multiple_avg_data(rto_iox, 1, 2, 'max')
+                rto_b, syn_b = rto_check([rto_best, syn_best])
+                #print('Best Setting: ', v1, trio1_best, v2, trio2_best, v3, trio3_best, 'Check {Adapter}_.output.json for Full Info')
+                print(f"Best Setting: {v1} {trio1_best} {v2} {trio2_best} {v3} {trio3_best} RTO {rto_best} SYN {syn_best}")
+                print("Check {Adapter}_.output.json for Full Info")
                 iou = loads(f"{name}_quick.json")
                 iou[v1] = (trio1_best)
                 iou[v2] = (trio2_best)
@@ -492,6 +499,19 @@ def buffers(name, stamp, n_score):
         return(receive_buffer_best, transmit_buffer_best)
     except Exception as e:
         print('Buffer Issues: ', e)
+def rto_check(rto_i=None):
+    if rto_i != None:
+        rto_time = rto_i[0]
+        rto_syn = rto_i[1]
+        command = f"netsh interface tcp set global initialRto={rto_time} maxsynretransmissions={rto_syn}"
+        result = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT, text=True)
+    result1 = subprocess.run(["netsh", "interface", "tcp", "show", "global"],capture_output=True, text=True, check=True)
+    output = result1.stdout
+    rto_match = re.search(r"Initial RTO\s*:\s*(\d+)", output)
+    rto = int(rto_match.group(1)) if rto_match else None
+    syn_match = re.search(r"Max SYN Retransmissions\s*:\s*(\d+)", output)
+    max_syn = int(syn_match.group(1)) if syn_match else None
+    return(rto, max_syn)
 def main():
     try:
         print('##### Anthonys MTU Adjuster #####')
@@ -504,6 +524,11 @@ def main():
         print('')
         interfaces = list(psutil.net_if_addrs().keys())
         print(interfaces)
+        rto_min = int(input('Min RTO: '))
+        rto_max = int(input('Max RTO: '))
+        syn_max = int(input('Max SYN: '))
+        rto_work = list(range(rto_min, (rto_max + 10), 10))
+        syn_work = list(range(1, (syn_max + 1), 1))
         for name in interfaces:
             print('')
             confirm = input(f"Benchmark {name} Y/N: ")
@@ -633,6 +658,28 @@ def main():
                 zen1 = 0
                 try:
                     while True:
+                        if max_recheck == 0:
+                            try:
+                                rto_a, syn_a = rto_check([random.choice(rto_work), random.choice(syn_work)])
+                            except:
+                                print('RTO Skipped')
+                        else:
+                            #Update Rto
+                            iox = loads(f"{name}.json")
+                            iop = loads(f"{name}_pairmode.json")
+                            rto_dic = {}
+                            rto_list = list(iox.keys() & iop.keys())
+                            for line in rto_list:
+                                try:
+                                    rto_listx = [iop.get(line)[3][0], iop.get(line)[3][1]]
+                                    rto_listx.append(iox.get(line)[7])
+                                    rto_dic[line] = (rto_listx)
+                                except:
+                                    pass
+                            dumps(f"{name}_rto.json", rto_dic)
+                            rto_best = multiple_avg_data(rto_dic, 0, 2, 'max')
+                            syn_best = multiple_avg_data(rto_dic, 1, 2, 'max')
+                            rto_b, syn_b = rto_check([rto_best, syn_best])
                         if max_recheck > 3:
                             max_recheck = 0
                             #number = num_max
