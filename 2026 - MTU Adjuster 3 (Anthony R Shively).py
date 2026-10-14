@@ -698,7 +698,7 @@ def main():
                                     print('>>> Get-Counter -ListSet * | Where-Object CounterSetName -match "Network" | Select-Object CounterSetName')
                                     print('>>> https://mags.acm.org/communications/201203/?pg=48#pg48')
                                     print('>>> https://www.youtube.com/watch?v=iSHFa4EXyjQ')
-                                    print('>>> netsh interface tcp set global initialRto=300 maxsynretransmissions=3')
+                                    print('>>> netsh interface tcp set global initialRto=450 maxsynretransmissions=2')
                                     print('>>> netsh int tcp set global pacingprofile=always')
                                     print('>>> netsh int tcp show global')
                                     print('>>> netsh int tcp set global ecncapability=enabled')
