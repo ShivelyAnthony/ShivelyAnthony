@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 import numpy as np
 import os
 import glob
@@ -86,7 +87,14 @@ try:
     v1y = [v[7] for v in iox.values()]
     print(len(v1y), len(v1x))
 
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    iop = loads('Ethernet_rto.json')
+    rto_x = [int(v[0]) for v in iop.values()]
+    rto_y = [v[2] for v in iop.values()]
+
+    syn_x = [int(v[1]) for v in iop.values()]
+    syn_y = [v[2] for v in iop.values()]
+
+    fig, axes = plt.subplots(3, 3, figsize=(14, 10))
     fig.suptitle(f'Network Adapter MTU Metrics', fontsize=14, fontweight='bold')
     #Hide the 4th Panel
     axes[1, 1].axis('on')
@@ -110,48 +118,37 @@ try:
     #ax1.legend(loc='upper right')
     #ax1.grid(axis='x', alpha=0.3)
 
-    # --- Bar 2: Wi-Fi (0 - 1500) ---
     ax2 = axes[0, 1]
     ax2.scatter(wifi_x, eth_y, color='saddlebrown', alpha=0.85, s=30)
-    #ax2.bar([wifi_name], [wifi_val], color='darkorange', width=0.5, alpha=0.85)
-    #overlay_line(ax2, wifi_val, 'saddlebrown', f'Wi-Fi = {wifi_val}')
     ax2.set_xlim(min(wifi_x), max(wifi_x))
-    #ax2.set_ylabel('Value')
     ax2.set_title(f'Wi-Fi: Raw')
-    #ax2.axhline(y=1500, color='red', linestyle='--', alpha=0.5, label='Max (1500)')
-    #ax2.legend(loc='upper right')
-    #ax2.grid(axis='y', alpha=0.3)
 
-    # --- Bar 3: HypoMux-Tun (0 - 9000) ---
-    ax3 = axes[1, 0]
-    #ax3.bar([hypo_name], [hypo_val], color='seagreen', width=0.5, alpha=0.85)
-    #overlay_line(ax3, hypo_val, 'darkgreen', f'HypoMux-Tun = {hypo_val}')
+    ax3 = axes[0, 2]
     ax3.scatter(hypo_graph_x, hypo_graph_y, color='darkgreen', alpha=0.85, s=30)
     ax3.set_xlim(min(hypo_graph_x), max(hypo_graph_x))
-    #ax3.set_xticks(range(0, max(hypo_graph_paired), (max(hypo_x) // 9)))
-    #ax3.set_ylabel('Value')
     ax3.set_title(f'HypoMux-Tun: Raw')
-    #ax3.axhline(y=9000, color='red', linestyle='--', alpha=0.5, label='Max (9000)')
-    #ax3.legend(loc='upper right')
-    #ax3.grid(axis='y', alpha=0.3)
 
-    # --- Bar 4: HypoMux-Tun (0 - 9000) ---
-    ax4 = axes[1, 1]
-    #ax3.bar([hypo_name], [hypo_val], color='seagreen', width=0.5, alpha=0.85)
-    #overlay_line(ax3, hypo_val, 'darkgreen', f'HypoMux-Tun = {hypo_val}')
+    ax4 = axes[1, 0]
     ax4.scatter(v1x, v1y, color='purple', alpha=0.85, s=30)
     ax4.set_xlim(min(v1x), max(v1x))
-    #ax3.set_ylabel('Value')
     ax4.set_title(f'Ethernet: Averaged')
-    #ax4.axhline(y=9000, color='red', linestyle='--', alpha=0.5, label='Max (9000)')
-    #ax4.legend(loc='upper right')
-    #ax4.grid(axis='y', alpha=0.3)
+
+    ax5 = axes[1, 1]
+    ax5.scatter(rto_x, rto_y, color='black', alpha=0.85, s=30)
+    ax5.set_xlim(min(rto_x), max(rto_x))
+    ax5.set_title(f'RTO: Raw')
+
+    ax6 = axes[1, 2]
+    ax6.scatter(syn_x, syn_y, color='black', alpha=0.85, s=30)
+    ax6.set_xlim(min(syn_x), max(syn_x))
+    ax6.set_title(f'SYN: Raw')
 
     plt.tight_layout()
     try:
         plt.savefig("plot.png", dpi=300, bbox_inches="tight")
     except:
         pass
+    #ani = FuncAnimation(fig, update, interval=30_000)
     plt.show()
     input('Exit')
 except Exception as e:
