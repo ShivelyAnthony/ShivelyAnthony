@@ -78,9 +78,6 @@ def run1():
     results = [work1(n, device) for n in chunks]
     if device == "cuda":
         torch.cuda.synchronize()  # Wait for GPU to finish
-    v1 = time.perf_counter() - start
-    return v1, results, device
-if __name__ == "__main__":
     iox = loads('Test Save.json')
     frame = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u',
              'v', 'w']
@@ -95,6 +92,9 @@ if __name__ == "__main__":
                 iop.append(frame3)
     iox['Test Saving'] = (iop)
     dumps('Test Save.json', iox)
+    v1 = time.perf_counter() - start
+    return v1, results, device
+if __name__ == "__main__":
     a = np.random.rand(128_128)
     start = time.perf_counter()
     b = a * 2
@@ -102,5 +102,5 @@ if __name__ == "__main__":
     v1 = run()
     print(v1)
     v2, results, device = run1()
-    print(v2)
+    print(v2 + v1)
     #input("Exit")
