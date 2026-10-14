@@ -13,6 +13,8 @@ Visual Studio Community 2026 & Desktop development with C++
 
 git clone --recursive https://github.com/microsoft/quicreach
 
+
+
 EnablePMTUBDetect 1 \System\CurrentControlSet\Services\Tcpip\Pararameters
 Stop Code: Driver IRQL Not Less Or Equal (Tcpip.sys blue screen crash)
 http://reddit.com/r/pcmasterrace/comments/1f8dssk/pc_crashes_randomly_when_playing_games_due_to/
@@ -24,3 +26,6 @@ TcpTimedWaitDelay 30
 FastSendDatagramThreshold 9000 (IP MTU L3)
 
 Get-NetAdapter | Select-Object Name, InterfaceGuid, InterfaceDescription
+
+
+Above go together >>> (Plot.png + Graph.py + MTU v3 )
