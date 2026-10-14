@@ -208,9 +208,9 @@ def scoring_output(name, ipv):
         ior['Max Load Temp Score'] = ([load_temp_score_index[0], load_temp_score_index[1], load_temp_score_index[2], load_temp_score_index[3], load_temp_score_index[4], load_temp_score_index[5], int(load_temp_score_index[6]), load_temp_score_index[7], all_mtus.count(load_temp_index[1])])
         dumps(f"{name}_output.json", ior)
         ran_pick = [ping_index[1], score_index[1], upload_index[1], download_index[1], load_temp_index[1], load_temp_score_index[1]]
-        if all_mtus.count(load_temp_score_index[1]) > 50:
+        '''if all_mtus.count(load_temp_score_index[1]) > 50:
             iop = change_mtu(name, ipv, load_temp_score_index[1])
-            input('Program Finished: ', name, load_temp_score_index[1])
+            input('Program Finished: ', name, load_temp_score_index[1])'''
         quick_pick = random.choice(ran_pick)
         return(quick_pick)
     except Exception as e:
@@ -262,37 +262,6 @@ def change_mtu(name, ipv, mtu):
         return(b)
     except Exception as e:
         print('Changing MTU Issues:', e)
-def python_ping(name, mtu, source_ip):
-    try:
-        iox = loads(f"{name}_router.json")
-        interval = 0.01
-        timeout = 0.5
-        h = ping("192.168.1.1", count=250, interval=interval, timeout=timeout, source=source_ip, privileged=False)
-        #stats = [interval, timeout, h.packets_sent, h.packets_received, h.packet_loss, h.min_rtt, h.avg_rtt, h.max_rtt, h.jitter]
-        #print(stats)
-        iox[time.time()] = ([mtu, interval, timeout, h.avg_rtt])
-        #all_mtu_total = [values[0] for values in iox.values()]
-        all_mtu = set([values[0] for values in iox.values()])
-        dumps(f"{name}_router.json", iox)
-        iox_t = {}
-        for line in all_mtu:
-            o = []
-            for line_x in iox:
-                if line == iox.get(line_x)[0]:
-                    o.append(iox.get(line_x)[3])
-            o_avg = (sum(o) / len(o))
-            iox_t[time.time()] = ([name, source_ip, line, o_avg])
-        iox = iox_t
-        min_avg = min(set([values[3] for values in iox.values()]))
-        if 0 == int(min_avg):
-            print('Ping 0 Issues...Superquick')
-        else:
-            for line in iox:
-                if min_avg == iox.get(line)[3]:
-                    print('Lowest Router Ping: ', iox.get(line))
-        dumps(f"{name}_router_avg.json", iox)
-    except Exception as e:
-        print('Python Ping Issues: ', e)
 def no_internet_boot():
     try:
         hostname = socket.gethostname()
@@ -416,6 +385,11 @@ def pair_mode_settings(name, mtu, ipv, stamp, devices, u=None):
                 v2 = trio.get(next(iter(trio)))[2]
                 v3 = trio.get(next(iter(trio)))[4]
                 print('Best Setting: ', v1, trio1_best, v2, trio2_best, v3, trio3_best, 'Check {Adapter}_.output.json for Full Info')
+                iou = loads(f"{name}_quick.json")
+                iou[v1] = (trio1_best)
+                iou[v2] = (trio2_best)
+                iou[v3] = (trio3_best)
+                dumps(f"{name}_quick.json", iou)
                 change_mtu(v1, ipv, trio1_best)
                 change_mtu(v2, ipv, trio2_best)
                 change_mtu(v3, ipv, trio3_best)
@@ -637,6 +611,7 @@ def main():
                 max_recheck = 0
                 a = iu
                 zen = 0
+                zen1 = 0
                 try:
                     while True:
                         if max_recheck > 3:
@@ -667,20 +642,32 @@ def main():
                                     number = random.choice(v1)
                                 else:
                                     number = num_max
+
                         else:
                             number = random.choice(work)
                         print(f"{name} Trying: {number}")
                         if zen == 0:
                             b = change_mtu(name, ipv, number)
                             if pair_mode == 1:
+                                #List
                                 ki = random.choice(list(device_list_work.keys()))
-                                xi = change_mtu(ki, ipv, random.choice(device_list_work.get(ki)))
+                                #Get Missing MTUs instead of random
+                                if zen1 == 0:
+                                    xi = change_mtu(ki, ipv, random.choice(device_list_work.get(ki)))
+                                    zen1 = (zen1 + 1)
+                                else:
+                                    iou = loads(f"{name}_quick.json")
+                                    if ki in iou:
+                                        print(f"{ki} Trying: {iou.get(ki)}")
+                                        xi = change_mtu(ki, ipv, iou.get(ki))
+                                    zen1 = 0
                         else:
                             b = number
                             zen = 0
                         if int(b) == int(number):
                             print(f"{name} {iu} Old: {a} => New: {b}")
-                            python_ping(name, b, ip_source)
+                            #Remove Ping, I don't use it.
+                            #python_ping(name, b, ip_source)
                             download, upload, ping, checker = speed_tester()
                             if checker == 0:
                                 print(f"Speed Tester issues running {name}")
@@ -744,3 +731,37 @@ def main():
         traceback.print_exc()
 while True:
     main()
+
+#############################################################################################################
+#Depreciated Functions
+def python_ping(name, mtu, source_ip):
+    try:
+        iox = loads(f"{name}_router.json")
+        interval = 0.01
+        timeout = 0.5
+        h = ping("192.168.1.1", count=250, interval=interval, timeout=timeout, source=source_ip, privileged=False)
+        #stats = [interval, timeout, h.packets_sent, h.packets_received, h.packet_loss, h.min_rtt, h.avg_rtt, h.max_rtt, h.jitter]
+        #print(stats)
+        iox[time.time()] = ([mtu, interval, timeout, h.avg_rtt])
+        #all_mtu_total = [values[0] for values in iox.values()]
+        all_mtu = set([values[0] for values in iox.values()])
+        dumps(f"{name}_router.json", iox)
+        iox_t = {}
+        for line in all_mtu:
+            o = []
+            for line_x in iox:
+                if line == iox.get(line_x)[0]:
+                    o.append(iox.get(line_x)[3])
+            o_avg = (sum(o) / len(o))
+            iox_t[time.time()] = ([name, source_ip, line, o_avg])
+        iox = iox_t
+        min_avg = min(set([values[3] for values in iox.values()]))
+        if 0 == int(min_avg):
+            print('Ping 0 Issues...Superquick')
+        else:
+            for line in iox:
+                if min_avg == iox.get(line)[3]:
+                    print('Lowest Router Ping: ', iox.get(line))
+        dumps(f"{name}_router_avg.json", iox)
+    except Exception as e:
+        print('Python Ping Issues: ', e)
