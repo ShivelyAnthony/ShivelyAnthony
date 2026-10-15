@@ -500,18 +500,22 @@ def buffers(name, stamp, n_score):
     except Exception as e:
         print('Buffer Issues: ', e)
 def rto_check(rto_i=None):
-    if rto_i != None:
-        rto_time = rto_i[0]
-        rto_syn = rto_i[1]
-        command = f"netsh interface tcp set global initialRto={rto_time} maxsynretransmissions={rto_syn}"
-        result = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT, text=True)
-    result1 = subprocess.run(["netsh", "interface", "tcp", "show", "global"],capture_output=True, text=True, check=True)
-    output = result1.stdout
-    rto_match = re.search(r"Initial RTO\s*:\s*(\d+)", output)
-    rto = int(rto_match.group(1)) if rto_match else None
-    syn_match = re.search(r"Max SYN Retransmissions\s*:\s*(\d+)", output)
-    max_syn = int(syn_match.group(1)) if syn_match else None
-    return(rto, max_syn)
+    try:
+        if rto_i != None:
+            rto_time = rto_i[0]
+            rto_syn = rto_i[1]
+            command = f"netsh interface tcp set global initialRto={rto_time} maxsynretransmissions={rto_syn}"
+            result = subprocess.run(["powershell", "-NoProfile", "-Command", command], capture_output=True, text=True)
+            #result = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT, text=True)
+        result1 = subprocess.run(["netsh", "interface", "tcp", "show", "global"],capture_output=True, text=True, check=True)
+        output = result1.stdout
+        rto_match = re.search(r"Initial RTO\s*:\s*(\d+)", output)
+        rto = int(rto_match.group(1)) if rto_match else None
+        syn_match = re.search(r"Max SYN Retransmissions\s*:\s*(\d+)", output)
+        max_syn = int(syn_match.group(1)) if syn_match else None
+        return(rto, max_syn)
+    except Exception as e:
+        print('RTO Check Issues:', e)
 def main():
     try:
         print('##### Anthonys MTU Adjuster #####')
@@ -659,10 +663,29 @@ def main():
                 try:
                     while True:
                         if max_recheck == 0:
-                            try:
-                                rto_a, syn_a = rto_check([random.choice(rto_work), random.choice(syn_work)])
-                            except:
-                                print('RTO Skipped')
+                            rto_dic = loads(f"{name}_rto.json")
+                            rto_have = list(set([values[0] for values in rto_dic.values()]))
+                            syn_have = list(set([values[1] for values in rto_dic.values()]))
+                            rto_work1 = []
+                            syn_work1 = []
+                            for line in rto_work:
+                                if line not in rto_have:
+                                    rto_work1.append(line)
+                            for line in syn_work:
+                                if line not in syn_work:
+                                    syn_work1.append(line)
+                            if len(rto_work1) > 0:
+                                print(f"RTO: {len(rto_work1)}")
+                                rto_best = random.choice(rto_work1)
+                            else:
+                                rto_best = multiple_avg_data(rto_dic, 0, 2, 'max')
+                            if len(syn_work1) > 0:
+                                syn_best = random.choice(syn_work1)
+                            else:
+                                syn_best = multiple_avg_data(rto_dic, 1, 2, 'max')
+                            rto_a, syn_a = rto_check([rto_best, syn_best])
+                        elif max_recheck == 2:
+                            rto_a, syn_a = rto_check([random.choice(rto_work), random.choice(syn_work)])
                         else:
                             #Update Rto
                             iox = loads(f"{name}.json")
