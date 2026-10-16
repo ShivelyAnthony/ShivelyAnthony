@@ -17,7 +17,9 @@ import traceback
 import segno
 from scapy.all import rdpcap, raw
 import pyshark
-from icmplib import ping
+#from icmplib import ping
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from icmplib import ping as pingx
 from multiprocessing import Pool
 import torch
 import numpy as np
@@ -251,7 +253,7 @@ def scoring_output(name, ipv):
         traceback.print_exc()
 def scoring(name, mtu, download, upload, ping):
     iox = loads(f"{name}.json")
-    score = (((download * .5) + (upload * .5)) / (ping))
+    score = (((download * .5) + (upload * .5)) / ((ping) * lan_scan()))
     tn = str(time.time())
     g1, g2 = get_temps()
     g2_score = (score / g2)
@@ -544,6 +546,45 @@ def rto_check(rto_i=None):
         return(rto, max_syn)
     except Exception as e:
         print('RTO Check Issues:', e)
+def measure(ip):
+    host = pingx(ip, count=3, interval=1, timeout=2)
+    received = host.packets_received
+    ratio = (host.avg_rtt / host.max_rtt) if host.max_rtt > 0 else 0
+    alive = host.is_alive
+    return(ip, ratio, alive, received)
+def lan_scan():
+    try:
+        ip_index = list(range(0, 16))
+        devices = []
+        total = 384
+        total_r = 0
+        for line in ip_index:
+            devices.append(f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}")
+            devices.append(f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}")
+            devices.append(f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}")
+            devices.append(f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}")
+            devices.append(f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}")
+            devices.append(f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}")
+            devices.append(f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}")
+            devices.append(f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}")
+        devices.remove(devices[0])
+        devices.remove(devices[5])
+        devices.append('192.168.1.190')
+        devices.append('192.168.1.1')
+        lan_list = []
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            futures = {executor.submit(measure, ip): ip for ip in devices}
+            for future in as_completed(futures):
+                ip, ratio, alive, received = future.result()
+                if alive == True:
+                    lan_list.append(ratio)
+                    total_r = (total_r + received)
+                else:
+                    total = (total - 3)
+        lan_score = (1 / ((((sum(lan_list) / len(lan_list)) / max(lan_list)) + (total / total_r)) / 2))
+        return(lan_score)
+    except Exception as e:
+        print('Lan Score Issues:', e)
 def main():
     try:
         print('##### Anthonys MTU Adjuster #####')
