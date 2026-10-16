@@ -30,4 +30,4 @@ Get-NetAdapter | Select-Object Name, InterfaceGuid, InterfaceDescription
 
 Above go together >>> (Plot.png + Graph.py + MTU v3/4 + cpu_task.py)
 
->>> adb shell am start -n io.anyfi.cosmos/.SplashActivity
+CMD>>> adb shell am start -n io.anyfi.cosmos/.SplashActivity
