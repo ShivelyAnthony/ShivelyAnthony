@@ -28,6 +28,6 @@ FastSendDatagramThreshold 9000 (IP MTU L3)
 Get-NetAdapter | Select-Object Name, InterfaceGuid, InterfaceDescription
 
 
-Above go together >>> (Plot.png + Graph.py + MTU v3/4 + cpu_task.py)
+Above go together >>> (Plot.png + Graph.py + MTU v3/4/5 + cpu_task.py)
 
 CMD>>> adb shell am start -n io.anyfi.cosmos/.SplashActivity
