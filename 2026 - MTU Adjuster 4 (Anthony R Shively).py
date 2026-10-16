@@ -439,7 +439,8 @@ def pair_mode_settings(name, mtu, ipv, stamp, devices, u=None):
                     even_odd = 'Even'
                 else:
                     even_odd = 'Odd'
-                print(f"Best Setting: {v1} {trio1_best} {v2} {trio2_best} {v3} {trio3_best} RTO {rto_best} SYN {syn_best} ({even_odd})")
+                virtual_best = virtual_mtu(name)
+                print(f"Best Setting: {v1} {trio1_best} {v2} {trio2_best} {v3} {trio3_best} RTO {rto_best} SYN {syn_best} ({even_odd}) {v3} Virtual MTU {virtual_best}")
                 print("Check {Adapter}_.output.json for Full Info")
                 iou = loads(f"{name}_quick.json")
                 iou[v1] = (trio1_best)
@@ -448,13 +449,41 @@ def pair_mode_settings(name, mtu, ipv, stamp, devices, u=None):
                 dumps(f"{name}_quick.json", iou)
                 change_mtu(v1, ipv, trio1_best)
                 change_mtu(v2, ipv, trio2_best)
-                change_mtu(v3, ipv, trio3_best)
+                change_mtu(v3, ipv, random.choice([trio3_best, virtual_best]))
                 if trio1_all.count(trio1_best) > 500 and trio2_all.count(trio2_best) > 500 and trio3_all.count(trio3_best) > 500:
                     input('Pairing Is Completed.')
             return(trio1_best)
     except Exception as e:
         print('Pair Mode Setting Issues:', e, name, mtu, stamp)
         traceback.print_exc()
+def virtual_mtu(name):
+    try:
+        ior = {}
+        iop = loads(f"{name}_pairmode.json")
+        mtu_a = {}
+        mtu_b = {}
+        for line in iop:
+            try:
+                a = iop.get(line)
+                ior[str(time.time())] = ([a[0], a[1], a[2][0][0], a[2][0][1], a[2][1][0], a[2][1][1], a[2][1][2]])
+            except:
+                pass
+        v1_best = multiple_avg_data(ior, 1, 6, 'max')
+        for line in ior:
+            if v1_best == ior.get(line)[1]:
+                mtu_a[str(time.time())] = ([ior.get(line)[4], ior.get(line)[5], ior.get(line)[6]])
+        v1_best_a = multiple_avg_data(mtu_a, 1, 2, 'max')
+        v2_best = multiple_avg_data(ior, 3, 6, 'max')
+        for line in ior:
+            if v2_best == ior.get(line)[3]:
+                mtu_b[str(time.time())] = ([ior.get(line)[4], ior.get(line)[5], ior.get(line)[6]])
+        v1_best_b = multiple_avg_data(mtu_b, 1, 2, 'max')
+        iot = [v1_best_a, v1_best_b]
+        v3_bestx = multiple_avg_data(ior, 5, 6, 'max')
+        #print(f"Ethernet {v1_best} Wifi {v2_best} HypoMux {v3_best} Compability {max(iot)}")
+        return(v3_bestx)
+    except Exception as e:
+        print('Virtual MTU Issues:', e)
 def multiple_avg_data(iox, multiple, value_x, type):
     try:
         #iox is a dict, multiple is reoccuring number set() - Location, value_x is a changing score Location
@@ -569,6 +598,8 @@ def lan_scan():
             devices.append(f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}")
         devices.remove(devices[0])
         devices.remove(devices[5])
+        # These are two devices on my own network that I use to verify it's a real device, it's IPv4 yes.
+        # Because your network can be re routed multiple times to different servers it can affect testing.
         devices.append('192.168.1.190')
         devices.append('192.168.1.1')
         lan_list = []
@@ -858,6 +889,8 @@ def main():
                                     print('>>> ping -n 8 -l 65500 192.168.1.1')
                                     print('>>> netsh int tcp show supplemental')
                                     print('>>> netsh int tcp set supplemental help')
+                                    print('>>> Get-NetTCPSetting | Format-Table SettingName, CongestionProvider -AutoSize')
+                                    print('>>> netsh int tcp set supplemental template=internetcustom congestionprovider=cubic')
                                     #Enable Lower delayedackfrequency=1 & MSS
                                     print('>>> Get-NetTCPSetting | Format-List SettingName,*')
                                     print('>>> netsh int tcp set supplemental template=internet enablecwndrestart=enabled')
