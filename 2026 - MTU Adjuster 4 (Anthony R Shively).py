@@ -7,6 +7,7 @@ import subprocess
 import random
 import json
 import os
+import glob
 import time
 import psutil
 import speedtest
@@ -14,6 +15,8 @@ import socket
 import re
 import traceback
 import segno
+from scapy.all import rdpcap, raw
+import pyshark
 from icmplib import ping
 from multiprocessing import Pool
 import torch
@@ -34,15 +37,6 @@ def dumps(file_name, data, i=None):
         pass
     with open(file_name, "w") as config:
         json.dump(data, config, indent=4)
-def tasker():
-    try:
-        out = subprocess.check_output(["python", "cpu_task.py"], text=True)
-        v1 = float(out.strip().splitlines()[0])
-        return(v1)
-    except Exception as e:
-        print('Make sure cpu_task.py is in the same location.')
-        print('If not you have to download it or create your own.')
-        print('Tasker Issues', e)
 def loads(file_name, i=None):
     io = {}
     if i != None:
@@ -62,10 +56,20 @@ def loads(file_name, i=None):
     except Exception as e:
         print("Issues with:", file_name, e)
     return (io)
+def tasker():
+    try:
+        out = subprocess.check_output(["python", "cpu_task.py"], text=True)
+        v1 = float(out.strip().splitlines()[0])
+        return(v1)
+    except Exception as e:
+        print('Make sure cpu_task.py is in the same location.')
+        print('If not you have to download it or create your own.')
+        print('Tasker Issues', e)
 def get_temps():
     try:
         temps = []
         load = []
+        v6_spec = 1
         computer = Computer()
         #print('')
         try:
@@ -138,6 +142,15 @@ def get_temps():
         #print('')
         try:
             v6 = computer.network
+            v6_d = []
+            v6_u = []
+            for line in v6:
+                v6_d.append(v6.get(line).get('Throughput').get('Download Speed'))
+                v6_u.append(v6.get(line).get('Throughput').get('Upload Speed'))
+            v6_d.sort(reverse=True)
+            v6_u.sort(reverse=True)
+            v6_list = [((sum(v6_d) + v6_d[1]) / 2), ((sum(v6_u) + v6_u[1]) / 2)]
+            v6_spec = (min(v6_list) / max(v6_list))
         except Exception as e:
             print('Network Issues:', e)
         #print('')
@@ -156,6 +169,7 @@ def get_temps():
                     pass
         except Exception as e:
             print('Storage Issues:', e)
+        temps.append((min(temps) / v6_spec))
         avg_temp = (sum(temps) / len(temps))
         return(temps, avg_temp)
     except Exception as e:
@@ -409,7 +423,21 @@ def pair_mode_settings(name, mtu, ipv, stamp, devices, u=None):
                 syn_best = multiple_avg_data(rto_iox, 1, 2, 'max')
                 rto_b, syn_b = rto_check([rto_best, syn_best])
                 #print('Best Setting: ', v1, trio1_best, v2, trio2_best, v3, trio3_best, 'Check {Adapter}_.output.json for Full Info')
-                print(f"Best Setting: {v1} {trio1_best} {v2} {trio2_best} {v3} {trio3_best} RTO {rto_best} SYN {syn_best}")
+                test_even = []
+                test_odd = []
+                ior = loads(f"{name}_avg.json")
+                for line in ior:
+                    if int(ior.get(line)[1]) % 2 == 0:
+                        test_even.append(ior.get(line)[7])
+                    else:
+                        test_odd.append(ior.get(line)[7])
+                test1 = (sum(test_even) / len(test_even))
+                test2 = (sum(test_odd) / len(test_odd))
+                if test1 > test2:
+                    even_odd = 'Even'
+                else:
+                    even_odd = 'Odd'
+                print(f"Best Setting: {v1} {trio1_best} {v2} {trio2_best} {v3} {trio3_best} RTO {rto_best} SYN {syn_best} ({even_odd})")
                 print("Check {Adapter}_.output.json for Full Info")
                 iou = loads(f"{name}_quick.json")
                 iou[v1] = (trio1_best)
@@ -525,6 +553,8 @@ def main():
         print('python "2026 - Mtu(press tab)"')
         print('Jumbo Ethernet Frames & Hyper-V 65536')
         print('10 Gigabit Server Adapters: Transmit Buffers 16384')
+        print('Standard Computers use Even Stepping')
+        print('Quantum Computers use Odd unless its built with tri chips')
         print('')
         interfaces = list(psutil.net_if_addrs().keys())
         print(interfaces)
@@ -780,6 +810,17 @@ def main():
                                     print('>>> netsh int tcp set global ecncapability=enabled')
                                     print('TcpAckFrequency 1 TcpDelAckTicks 0 TcpNoDelay 1 TcpTimedWaitDelay 30 FastSendDatagramThreshold 9000 (IP MTU L3)')
                                     print('Sack0pts 1, Tcp1323Opts 2, EnablePMTUBHDetect 1')
+                                    print('>>> Get-NetAdapterRss | Format-Table Name, Enabled, NumberOfReceiveQueues, Profile -AutoSize')
+                                    print('>>> Get-NetAdapterRss -Name "Ethernet" | Format-List *')
+                                    print('https://github.com/vadyaravadim/msi-mode-utility')
+                                    print('>>> Set-NetAdapterRss -Name "Ethernet" -BaseProcessorNumber 0 -MaxProcessorNumber 15 -MaxProcessors 16')
+                                    print('>>> ping -n 8 -l 65500 192.168.1.1')
+                                    print('>>> netsh int tcp show supplemental')
+                                    print('>>> netsh int tcp set supplemental help')
+                                    #Enable Lower delayedackfrequency=1 & MSS
+                                    print('>>> Get-NetTCPSetting | Format-List SettingName,*')
+                                    print('>>> netsh int tcp set supplemental template=internet enablecwndrestart=enabled')
+                                    print('https://xiking.win/2020/05/15/1-linux-network-multiqueue/')
                                     qrcode = segno.make_qr('https://mags.acm.org/communications/201203/?pg=48#pg48')
                                     qrcode.save('Mags.png', scale=10, )
                                     time.sleep(10)
