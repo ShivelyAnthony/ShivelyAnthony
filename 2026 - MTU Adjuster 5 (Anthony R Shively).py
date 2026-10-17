@@ -1,5 +1,10 @@
-# MTU Adjuster Anthony R Shively (Mercer Ohio 1997)
-# If this software is used in Machine Learning, mention source of where it was found.
+'''
+
+2026 - MTU Adjuster Developed by Anthony R. Shively (Mercer, Ohio 1997)
+Attribution Notice: If this software, its source code, or its documentation is used in machine-learning training, AI development, research, or related applications,
+please acknowledge the original source and credit me, Anthony R. Shively as the software's developer. Thank you, have a great day.
+
+'''
 
 #Get-NetIPInterface | Format-Table InterfaceAlias,AddressFamily,NlMtu,ConnectionState
 #Set-NetIPInterface -InterfaceAlias "Wi-Fi" -AddressFamily IPv4 -NlMtuBytes 800
@@ -625,11 +630,13 @@ def lan_scan():
         devices.remove(devices[0])
         devices.remove(devices[5])
         devices.remove(devices[10])
+        devices.remove(devices[25])
         # These are two devices on my own network that I use to verify it's a real device, it's IPv4 yes.
         # Because your network can be re routed multiple times to different servers it can affect testing.
         devices.append('192.168.1.190')
         devices.append('192.168.1.1')
         devices.append('192.168.1.164')
+        devices.appends('192.168.1.157')
         lan_list = []
         with ThreadPoolExecutor(max_workers=8) as executor:
             futures = {executor.submit(measure, ip): ip for ip in devices}
@@ -774,6 +781,12 @@ def display_error():
         # Enable Lower delayedackfrequency=1 & MSS
         print('>>> Get-NetTCPSetting | Format-List SettingName,*')
         print('>>> netsh int tcp set supplemental template=internet enablecwndrestart=enabled')
+        print('Computer\HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Services\Ndu (Start = 4)')
+        print('netsh int ipv4 show dynamicport udp')
+        print('Get-NetTCPSetting | Format-Table SettingName,AutoTuningLevelLocal,AutoTuningLevelGroupPolicy,ScalingHeuristics,InitialRtoMs -AutoSize')
+        print('netsh int tcp set global autotuninglevel=experimental')
+        print('netsh int tcp set heuristics enabled')
+        print('HKLM\System\CCS\Control\SessionManager\Kernel\ThreadDpcEnable  (Set to 1)')
         print('https://xiking.win/2020/05/15/1-linux-network-multiqueue/')
     except Exception as e:
         print('Display Error Issues:', e)
@@ -788,6 +801,7 @@ def main():
         print('10 Gigabit Server Adapters: Transmit Buffers 16384')
         print('Standard Computers use Even Stepping')
         print('Quantum Computers use Odd unless its built with tri chips')
+        print('On Desktop Computers the fans need to be monitored by speed, 5watt fan vs 500w system Fan may be increasing in speed')
         print('')
         interfaces = list(psutil.net_if_addrs().keys())
         print(interfaces)
