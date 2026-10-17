@@ -20,6 +20,8 @@ import socket
 import re
 import traceback
 import segno
+import statistics
+import pyautogui
 from scapy.all import rdpcap, raw
 import pyshark
 #from icmplib import ping
@@ -30,6 +32,17 @@ import torch
 import numpy as np
 from PyLibreHardwareMonitor import Computer
 #from rich.progress import track
+def response_timing():
+    try:
+        results = []
+        for _ in range(100):
+            start = time.perf_counter_ns()
+            pyautogui.press("a")
+            end = time.perf_counter_ns()
+            results.append((end - start) / 1_000_000)
+        return((1 / (min(results) / max(results))))
+    except Exception as e:
+        print('Response Timing Issues:', e)
 def dumps(file_name, data, i=None):
     if i != None:
         if i == 'Clean':
@@ -256,16 +269,7 @@ def scoring_output(name, ipv):
     except Exception as e:
         print('Scoring Output Issues: ', e)
         traceback.print_exc()
-def scoring(name, mtu, download, upload, ping):
-    iox = loads(f"{name}.json")
-    score = (((download * .5) + (upload * .5)) / ((ping) * lan_scan()))
-    tn = str(time.time())
-    g1, g2 = get_temps()
-    g2_score = (score / g2)
-    iox[tn] = ([name, mtu, download, upload, ping, score, g2, g2_score])
-    dumps(f"{name}.json", iox)
-    return(tn, g2_score)
-def speed_tester():
+def speed_tester(name, mtu):
     try:
         st = speedtest.Speedtest()
         st.get_best_server()
@@ -276,13 +280,28 @@ def speed_tester():
             ping = 5000
         elif ping == 0:
             ping = 1
-        return(download, upload, ping, 1)
+        #x, y = scoring(name, mtu, download, upload, ping)
+        #print('Speed Tester should be working')
+        iox = loads(f"{name}.json")
+        # Best Timing is towards 0 or 1, Remember to adjust Score based on divison.
+        extra_tests = [lan_scan()] # response_timing()
+        avg_test = (sum(extra_tests) / len(extra_tests))
+        score = (((download * .5) + (upload * .5)) / ((ping) * avg_test))
+        tn = str(time.time())
+        g1, g2 = get_temps()
+        g2_score = (score / g2)
+        iox[tn] = ([name, mtu, download, upload, ping, score, g2, g2_score])
+        dumps(f"{name}.json", iox)
+        return (1, tn, g2_score)
+        #return (1, x, y)
     except Exception as e:
-        return(0, 0, 0, 0)
-        #print('Speed Tester Issues:', e)
+        # return(0, 0, 0, 0)
+        # print('Speed Tester Issues:', e)
+        return (0, 0, 0)
 def get_mtu(name, ipv):
     try:
-        command = (f'Get-NetIPInterface -InterfaceAlias "{name}" ' f'-AddressFamily {ipv} | ' 'Select-Object -ExpandProperty NlMtu')
+        command = (
+            f'Get-NetIPInterface -InterfaceAlias "{name}" ' f'-AddressFamily {ipv} | ' 'Select-Object -ExpandProperty NlMtu')
         #command = ["powershell.exe", "-NoProfile", "-Command", f'Get-NetIPInterface -InterfaceAlias "{name}" ' f'-AddressFamily {ipv} | Select-Object -ExpandProperty NlMtuBytes']
         #print(command)
         result = subprocess.run(["powershell.exe", "-NoProfile", "-Command", command], capture_output=True, text=True)
@@ -636,7 +655,7 @@ def lan_scan():
         devices.append('192.168.1.190')
         devices.append('192.168.1.1')
         devices.append('192.168.1.164')
-        devices.appends('192.168.1.157')
+        devices.append('192.168.1.157')
         lan_list = []
         with ThreadPoolExecutor(max_workers=8) as executor:
             futures = {executor.submit(measure, ip): ip for ip in devices}
@@ -781,12 +800,12 @@ def display_error():
         # Enable Lower delayedackfrequency=1 & MSS
         print('>>> Get-NetTCPSetting | Format-List SettingName,*')
         print('>>> netsh int tcp set supplemental template=internet enablecwndrestart=enabled')
-        print('Computer\HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Services\Ndu (Start = 4)')
+        print('Computer\\HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001\\Services\\Ndu (Start = 4)')
         print('netsh int ipv4 show dynamicport udp')
         print('Get-NetTCPSetting | Format-Table SettingName,AutoTuningLevelLocal,AutoTuningLevelGroupPolicy,ScalingHeuristics,InitialRtoMs -AutoSize')
         print('netsh int tcp set global autotuninglevel=experimental')
         print('netsh int tcp set heuristics enabled')
-        print('HKLM\System\CCS\Control\SessionManager\Kernel\ThreadDpcEnable  (Set to 1)')
+        print('HKLM\\System\\CCS\\Control\\SessionManager\\Kernel\\ThreadDpcEnable  (Set to 1)')
         print('https://xiking.win/2020/05/15/1-linux-network-multiqueue/')
     except Exception as e:
         print('Display Error Issues:', e)
@@ -958,7 +977,8 @@ def main():
                         b = get_mtu(name, ipv)
                         if 1 == 1:
                             print(f"{name} {iu} Old: {a} => New: {b}")
-                            download, upload, ping, checker = speed_tester()
+                            checker, n, g2_score = speed_tester(name, b)
+                            #print('Completed: Speed Tester')
                             if checker == 0:
                                 print(f"Speed Tester issues running {name}")
                                 if error1 == 0:
@@ -969,7 +989,9 @@ def main():
                                     no_internet_boot()
                                     error1 == 1
                                 continue
-                            n, g2_score = scoring(name, b, download, upload, ping)
+                            if checker == 0:
+                                input(f"Make Sure these arent 0 {n} {g2_score}")
+                            #= scoring(name, b, download, upload, ping)
                             # Ignoring Buffers Because I don't have it working on my system yet
                             # But the code logic is implemented, probably has issues.
                             best_buffers = []
@@ -988,9 +1010,11 @@ def main():
                             if pair_mode == 1:
                                 #pair_mode_settings(name, b, ipv, n, interface_list)
                                 pair_mode_engine2(max_recheck, name, b, ipv, n, interface_list)
+                                print('Completed: Pair Mode Engine 2')
                                 #print('Completed: Pair Mode Engine2')
                             #num_max = scoring_output(name, ipv)
                             scoring_output(name, ipv)
+                            print('Completed: Scoring Output')
                             #a = b
                             a = get_mtu(name, ipv)
                         else:
