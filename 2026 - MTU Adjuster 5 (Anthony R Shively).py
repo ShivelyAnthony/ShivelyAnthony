@@ -22,6 +22,8 @@ import traceback
 import segno
 import statistics
 import pyautogui
+import gc
+import math
 from scapy.all import rdpcap, raw
 import pyshark
 #from icmplib import ping
@@ -809,6 +811,24 @@ def display_error():
         print('https://xiking.win/2020/05/15/1-linux-network-multiqueue/')
     except Exception as e:
         print('Display Error Issues:', e)
+def wait_engine(name, ipv):
+    try:
+        iox = loads(f"{name}.json")
+        iox_len = len(iox)
+        if iox_len > 3500:
+            ioz = loads(f"{name}_quick.json")
+            b_dic = {}
+            for line in ioz:
+                best = ioz.get(line)
+                b = change_mtu(name, ipv, best)
+                b_dic[line] = b
+            for line in b_dic:
+                print(line, b_dic.get(line))
+            print(f"{name} Waiting 4 hours")
+            gc.collect()
+            time.sleep(14400)
+    except Exception as e:
+        print('Wait Engine Issues:', e)
 def main():
     try:
         print('##### Anthonys MTU Adjuster #####')
@@ -953,7 +973,7 @@ def main():
                 admin_error = 1
                 error1 = 0
                 max_recheck = 0
-                a = iu
+                old_mtu = iu
                 do_once = 0
                 try:
                     while True:
@@ -976,7 +996,7 @@ def main():
                         #if int(b) == int(number):
                         b = get_mtu(name, ipv)
                         if 1 == 1:
-                            print(f"{name} {iu} Old: {a} => New: {b}")
+                            print(f"{name} {iu} Old: {old_mtu} => New: {b}")
                             checker, n, g2_score = speed_tester(name, b)
                             #print('Completed: Speed Tester')
                             if checker == 0:
@@ -1014,9 +1034,9 @@ def main():
                                 #print('Completed: Pair Mode Engine2')
                             #num_max = scoring_output(name, ipv)
                             scoring_output(name, ipv)
-                            print('Completed: Scoring Output')
+                            #print('Completed: Scoring Output')
                             #a = b
-                            a = get_mtu(name, ipv)
+                            old_mtu = get_mtu(name, ipv)
                         else:
                             print('Issues')
                             if admin_error == 1:
@@ -1024,6 +1044,7 @@ def main():
                                 admin_error = 0
                         max_recheck = (max_recheck + 1)
                         do_once = 1
+                        wait_engine(name, ipv)
                 except KeyboardInterrupt:
                     print('Exited Loop')
                 iu_x = change_mtu(name, ipv, iu)
