@@ -9,6 +9,7 @@ please acknowledge the original source and credit me, Anthony R. Shively as the 
 #Get-NetIPInterface | Format-Table InterfaceAlias,AddressFamily,NlMtu,ConnectionState
 #Set-NetIPInterface -InterfaceAlias "Wi-Fi" -AddressFamily IPv4 -NlMtuBytes 800
 import subprocess
+import ctypes
 import random
 import json
 import os
@@ -20,10 +21,10 @@ import socket
 import re
 import traceback
 import segno
+from ctypes import wintypes
 import statistics
 import pyautogui
 import gc
-import math
 from scapy.all import rdpcap, raw
 import pyshark
 #from icmplib import ping
@@ -34,6 +35,142 @@ import torch
 import numpy as np
 from PyLibreHardwareMonitor import Computer
 #from rich.progress import track
+import math
+def sqrt(a, b=None):
+    try:
+        if b == None:
+            #b = a
+            z = math.sqrt(a)
+            return(z)
+        else:
+            c = (a + b)
+            d = (a * b)
+            e = (d / c)
+            f = (e * 2)
+            return(f)
+    except Exception as e:
+        print('Sqrt Issues:', e)
+def ratio(a, b, i=None):
+    if a == 0 or b == 0:
+        return(0)
+    if i == None:
+        u = [a, b]
+        price = (min(u) / max(u))
+        return(price)
+    else:
+        u = [a, b]
+        price = (max(u) / min(u))
+        return(price)
+class PERFORMANCE_INFORMATION(ctypes.Structure):
+    _fields_ = [
+        ('cb', wintypes.DWORD),
+        ('CommitTotal', ctypes.c_size_t),
+        ('CommitLimit', ctypes.c_size_t),
+        ('CommitPeak', ctypes.c_size_t),
+        ('PhysicalTotal', ctypes.c_size_t),
+        ('PhysicalAvailable', ctypes.c_size_t),
+        ('SystemCache', ctypes.c_size_t),
+        ('KernelTotal', ctypes.c_size_t),
+        ('KernelPaged', ctypes.c_size_t),      # Paged Pool (in pages)
+        ('KernelNonpaged', ctypes.c_size_t),   # Non-paged pool (in pages)
+        ('PageSize', ctypes.c_size_t),         # Page size in bytes
+        ('HandleCount', wintypes.DWORD),
+        ('ProcessCount', wintypes.DWORD),
+        ('ThreadCount', wintypes.DWORD),
+    ]
+def get_performance_info() -> PERFORMANCE_INFORMATION:
+    """Populate and return a PERFORMANCE_INFORMATION structure."""
+    psapi = ctypes.WinDLL('psapi', use_last_error=True)
+    info = PERFORMANCE_INFORMATION()
+    info.cb = ctypes.sizeof(info)
+    if not psapi.GetPerformanceInfo(ctypes.byref(info), info.cb):
+        raise ctypes.WinError(ctypes.get_last_error())
+    return info
+def cpu_ram_gpu():
+    try:
+        info = get_performance_info()
+        ram = psutil.virtual_memory()
+        computer = Computer()
+        #print(computer)
+        #print(computer.network)
+        #print(computer.gpu)
+        v2 = computer.memory
+        temps = []
+        try:
+            v1 = computer.cpu
+            for line in v1:
+                cpu_temps = []
+                cpu1 = v1.get(line).get('Load')
+                cpu_temps1 = []
+                for line_x in cpu1:
+                    cpu_temps1.append(cpu1.get(line_x))
+                cpu_temps.append(sum(cpu_temps1) / len(cpu_temps1))
+                cpu_temps2 = []
+                cpu2 = v1.get(line).get('Power')
+                for line_x in cpu2:
+                    cpu_temps2.append(cpu2.get(line_x))
+                cpu_temps.append(sum(cpu_temps2) / len(cpu_temps2))
+                cpu3 = v1.get(line).get('Temperature').get('Core (Tctl/Tdie)')
+                cpu_temps.append(cpu3)
+                temps.append((sum(cpu_temps) / len(cpu_temps)))
+        except Exception as e:
+            print('CPU Issues:', e)
+        try:
+            v2 = computer.memory
+            for line in v2:
+                try:
+                    mem1 = float(v2.get(line).get('Load').get('Memory'))
+                    mem2 = float(v2.get(line).get('Load').get('Virtual Memory'))
+                    mem_load = [mem1, mem2]
+                    mem_avg = (sum(mem_load) / len(mem_load))
+                    temps.append(mem_avg)
+                except Exception as e:
+                    print('Memory Issues:', e)
+        except Exception as e:
+            print('MEM Issues:', e)
+        try:
+            v3 = computer.gpu
+            for line in v3:
+                try:
+                    gpu_core_temp = v3.get(line).get('Temperature').get('GPU Core')
+                    gpu_power = v3.get(line).get('Power').get('GPU Package')
+                    gpu_temps = [gpu_core_temp, gpu_power]
+                    avg_gpu_temp_loads = (sum(gpu_temps) / len(gpu_temps))
+                    temps.append(avg_gpu_temp_loads)
+                except Exception as e:
+                    print('GPU Issues:', e)
+        except Exception as e:
+            print('GPU Issues:', e)
+        load1 = ((sum(temps) / len(temps)) / 100)
+        load2 = (ram.percent / 100)
+        load_list = [load1, load2]
+        '''page_fields = [
+        ('Commit Total',      info.CommitTotal),
+        ('Commit Limit',      info.CommitLimit),
+        ('Commit Peak',       info.CommitPeak),
+        ('Physical Total',    info.PhysicalTotal),
+        ('Physical Available', info.PhysicalAvailable),
+        ('System Cache',      info.SystemCache),
+        ('Kernel Total',      info.KernelTotal),
+        ('Paged Pool',        info.KernelPaged),
+        ('Non-Paged Pool',    info.KernelNonpaged),
+        ]'''
+        '''hynix = sym('hynix')
+        equation = Eq(hynix, ())
+        solution = solve(equation, hynix)
+        print(float(solution[0]))'''
+        load_list.append(ratio(info.CommitLimit, (info.PhysicalTotal * 2)))
+        load_list.append(ratio(info.CommitLimit, (info.PhysicalTotal * 2)))
+        load_list.append(ratio(info.CommitLimit, (info.PhysicalTotal * 2)))
+        load_list.append(ratio(info.CommitLimit, (info.PhysicalTotal * 2)))
+        ram_list = [info.KernelPaged, info.KernelTotal, info.SystemCache, info.KernelNonpaged]
+        avgx= ratio((sum(ram_list) / len(ram_list)), sqrt(min(ram_list), max(ram_list)))
+        load_list.append(avgx)
+        #print(load_list)
+        avg_sqrt = (min(load_list) / max(load_list))
+        return(avg_sqrt)
+    except Exception as e:
+        print('CPU RAM GPU Issues:', e)
 def response_timing():
     try:
         results = []
@@ -286,7 +423,7 @@ def speed_tester(name, mtu):
         #print('Speed Tester should be working')
         iox = loads(f"{name}.json")
         # Best Timing is towards 0 or 1, Remember to adjust Score based on divison.
-        extra_tests = [lan_scan()] # response_timing()
+        extra_tests = [lan_scan()] # response_timing() cpu_ram_gpu()
         avg_test = (sum(extra_tests) / len(extra_tests))
         score = (((download * .5) + (upload * .5)) / ((ping) * avg_test))
         tn = str(time.time())
@@ -394,12 +531,17 @@ def pair_mode_settings(name, mtu, ipv, stamp, devices, u=None):
             dumps(f"{name}_trio.json", trio)
         if 1 == 1:
             #Change to a json format for each device (Ethernet_Wifi)
+            trio_fixed = []
             for line in trio:
                 try:
                     j1 = trio.get(line)[3]
                     j2 = trio.get(line)[5]
                 except:
-                    del trio[line]
+                    trio_fixed.append(line)
+            if len(trio_fixed) > 1:
+                print(f"Trio Config is Messed up {line}")
+            for line in trio_fixed:
+                del trio[line]
             if len(trio.get(next(iter(trio)))) == 7:
                 trio1 = set([values[1] for values in trio.values()])
                 trio1_all = [values[1] for values in trio.values()]
@@ -466,7 +608,7 @@ def pair_mode_settings(name, mtu, ipv, stamp, devices, u=None):
                 else:
                     even_odd = 'Odd'
                 virtual_best = virtual_mtu(name)
-                print(f"Best Setting: {v1} {trio1_best} {v2} {trio2_best} {v3} {trio3_best} RTO {rto_best} SYN {syn_best} ({even_odd}) {v3} Virtual MTU {virtual_best}")
+                print(f"{len(iox)} Best Setting: {v1} {trio1_best} {v2} {trio2_best} {v3} {trio3_best} RTO {rto_best} SYN {syn_best} ({even_odd}) {v3} Virtual MTU {virtual_best}")
                 print("Check {Adapter}_.output.json for Full Info")
                 iou = loads(f"{name}_quick.json")
                 iou[v1] = (trio1_best)
@@ -815,7 +957,7 @@ def wait_engine(name, ipv):
     try:
         iox = loads(f"{name}.json")
         iox_len = len(iox)
-        if iox_len > 3500:
+        if iox_len > 5500:
             ioz = loads(f"{name}_quick.json")
             b_dic = {}
             for line in ioz:
@@ -1030,7 +1172,7 @@ def main():
                             if pair_mode == 1:
                                 #pair_mode_settings(name, b, ipv, n, interface_list)
                                 pair_mode_engine2(max_recheck, name, b, ipv, n, interface_list)
-                                print('Completed: Pair Mode Engine 2')
+                                #print('Completed: Pair Mode Engine 2')
                                 #print('Completed: Pair Mode Engine2')
                             #num_max = scoring_output(name, ipv)
                             scoring_output(name, ipv)
