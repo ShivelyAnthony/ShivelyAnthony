@@ -36,6 +36,81 @@ import numpy as np
 from PyLibreHardwareMonitor import Computer
 #from rich.progress import track
 import math
+import requests
+def curl_to_python(url, headers=None, data=None):
+    time_manage = (url + " Time")
+    url_m = (url + " Last State")
+    now_time = float(time.time())
+    io = loads('Url Manager.json')
+    iov = {}
+    if url in io:
+        iov = io.get(url)
+    time_get = 0
+    time_sleep = 0.5
+    if time_manage in iov and url_m in iov:
+        time_get = float(iov.get(time_manage))
+        if iov.get(url_m) == "Bad":
+            time_get = (time_get + 1800)
+            time_sleep = 1
+    if headers == None:
+        headers = {"Content-Type": "application/json"}
+    # Get and Post are Different Here!!
+    # 60 is changed for this program but should be atleast 300 (5 Mins) to bypass being rate limited
+    if (float(time_get + 30)) < float(now_time):
+        time.sleep(time_sleep)
+        if data == None:
+            response = requests.get(url, headers=headers)
+            if response.status_code != 200:
+                print("Bad Get Url:",  url)
+                iov[time_manage] = (now_time)
+                iov[url_m] = ("Bad")
+                io[url] = (iov)
+                dumps('Url Manager.json', io)
+            elif response.status_code == 200 or response.status_code == "200":
+                iov[url] = (response.json())
+                iov[time_manage] = (now_time)
+                iov[url_m] = ("Good")
+                io[url] = (iov)
+                dumps("Url Manager.json", io)
+            return(response.json())
+        else:
+            time.sleep(.25)
+            response = requests.post(url, headers=headers, data=json.dumps(data))
+            if response.status_code != 200:
+                print("Bad Post Url:",  url)
+            return(response.json())
+    else:
+        if url in iov:
+            z = iov.get(url)
+            return(z)
+def terra():
+    try:
+        io = loads('Simple Terra Exchange.json')
+        try:
+            url = 'https://terra-classic-lcd.publicnode.com/terra/oracle/v1beta1/denoms/exchange_rates'
+            data = curl_to_python(url)
+            x = data['exchange_rates']
+            for line in x:
+                io[line['denom']] = (float(line['amount']))
+            dumps('Simple Terra Exchange.json', io)
+        except:
+            print('Terra Exchange Rates Down')
+            traceback.print_exc()
+    except Exception as e:
+        print('Terra Issues:', e)
+def terra_weight():
+    try:
+        io = loads(f"Simple Terra Exchange.json")
+        terra_list = []
+        for line in io:
+            terra_list.append(io.get(line))
+        terra_avg = (1 / (min(terra_list) / (sum(terra_list) / len(terra_list))))
+        #terra_avg = (sum(terra_list) / len(terra_list))
+        #return(((1 + abs(1 - terra_avg)) / 1))
+        return(terra_avg)
+    except Exception as e:
+        print('Terra Weight Issues:', e)
+        return(1)
 def sqrt(a, b=None):
     try:
         if b == None:
@@ -423,7 +498,8 @@ def speed_tester(name, mtu):
         #print('Speed Tester should be working')
         iox = loads(f"{name}.json")
         # Best Timing is towards 0 or 1, Remember to adjust Score based on divison.
-        extra_tests = [lan_scan()] # response_timing() cpu_ram_gpu()
+        terra()
+        extra_tests = [lan_scan(), terra_weight()] # response_timing() cpu_ram_gpu()
         avg_test = (sum(extra_tests) / len(extra_tests))
         score = (((download * .5) + (upload * .5)) / ((ping) * avg_test))
         tn = str(time.time())
@@ -451,6 +527,9 @@ def get_mtu(name, ipv):
         return(0)
 def change_mtu(name, ipv, mtu):
     try:
+        command = (f'Set-NetIPInterface -InterfaceAlias "{name}" ' f'-AddressFamily {'IPV6'} -NlMtuBytes {mtu}')
+        # command = ["powershell.exe", "-NoProfile", "-Command", f'Set-NetIPInterface -InterfaceAlias "{name}" ' f'-AddressFamily {ipv} -NlMtuBytes {mtu}']
+        result = subprocess.run(["powershell.exe", "-NoProfile", "-Command", command], capture_output=True, text=True)
         command = (f'Set-NetIPInterface -InterfaceAlias "{name}" ' f'-AddressFamily {ipv} -NlMtuBytes {mtu}')
         #command = ["powershell.exe", "-NoProfile", "-Command", f'Set-NetIPInterface -InterfaceAlias "{name}" ' f'-AddressFamily {ipv} -NlMtuBytes {mtu}']
         result = subprocess.run(["powershell.exe", "-NoProfile", "-Command", command], capture_output=True, text=True)
@@ -595,18 +674,20 @@ def pair_mode_settings(name, mtu, ipv, stamp, devices, u=None):
                 #print('Best Setting: ', v1, trio1_best, v2, trio2_best, v3, trio3_best, 'Check {Adapter}_.output.json for Full Info')
                 test_even = []
                 test_odd = []
+                even_odd = 'Null'
                 ior = loads(f"{name}_avg.json")
                 for line in ior:
                     if int(ior.get(line)[1]) % 2 == 0:
                         test_even.append(ior.get(line)[7])
                     else:
                         test_odd.append(ior.get(line)[7])
-                test1 = (sum(test_even) / len(test_even))
-                test2 = (sum(test_odd) / len(test_odd))
-                if test1 > test2:
-                    even_odd = 'Even'
-                else:
-                    even_odd = 'Odd'
+                if len(test_odd) > 1 and len(test_even) > 1:
+                    test1 = (sum(test_even) / len(test_even))
+                    test2 = (sum(test_odd) / len(test_odd))
+                    if test1 > test2:
+                        even_odd = 'Even'
+                    else:
+                        even_odd = 'Odd'
                 virtual_best = virtual_mtu(name)
                 print(f"{len(iox)} Best Setting: {v1} {trio1_best} {v2} {trio2_best} {v3} {trio3_best} RTO {rto_best} SYN {syn_best} ({even_odd}) {v3} Virtual MTU {virtual_best}")
                 print("Check {Adapter}_.output.json for Full Info")
@@ -698,7 +779,7 @@ def multiple_avg_data(iox, multiple, value_x, type):
         return(v1_best)
     except Exception as e:
         print('Multiple Avg Data Issues:', e)
-        #traceback.print_exc()
+        return(1500)
 # Run intilization Devices + Current Adapter as a list
 def get_buffer(name, type):
     try:
@@ -781,6 +862,53 @@ def lan_scan():
         devices = []
         total = 384
         total_r = 0
+        ioz = loads('Simple Terra Exchange.json')
+        ioz_list = list(ioz.values())
+        ioz_min = min(ioz_list)
+        ioz_max = max(ioz_list)
+        for line in ioz:
+            if ioz_min == ioz.get(line):
+                net_min = line
+            elif ioz_max == ioz.get(line):
+                net_max = line
+        #AUD : .au
+        #CAD : .ca
+        #CHF : .ch
+        #CNY : .cn
+        #DKK : .dk
+        #EUR : .eu
+        #GBP : .uk
+        #HKD : .hk
+        #IDR : .id
+        #INR : .in
+        #JPY :
+        #KRW
+        #MYR
+        #NOK
+        #PHP
+        #SDR
+        #SEK
+        #THB
+        #USD
+        net_dic = {'uaud': ['170.64.147.31', '172.193.67.34', '13.239.88.95', '54.252.183.5', '54.252.183.4', '118.127.62.178', '45.248.78.99', '103.12.189.171'],
+                   'ucad': ['96.45.46.46', '99.240.73.140', '69.70.21.150', '132.145.108.223', '91.194.11.222', '38.110.76.234', '172.94.127.12', '69.79.228.166'],
+                   'uchf': ['192.0.66.156', '217.26.52.52', '170.17.153.89', '80.219.100.93', '81.63.150.156', '46.14.186.141', '62.2.151.66', '46.14.199.129'],
+                   'ucny': ['8.218.126.38', '103.144.53.186', '223.5.5.252', '120.53.53.198', '114.114.115.115', '103.144.52.214', '173.82.141.168', '120.53.53.54'],
+                   'udkk': ['88.221.162.33', '46.166.189.67', '80.113.19.90', '213.125.136.58', '51.158.152.202', '89.146.35.15', '145.131.193.46', '84.31.128.12'],
+                   'ueur': ['89.96.201.83', '195.250.235.162', '82.97.230.90', '119.12.45.8', '195.101.69.86', '212.234.30.110', '86.218.132.205', '80.124.101.202'],
+                   'ugbp': ['81.138.71.238', '143.110.169.182', '192.221.154.0', '80.235.229.76', '81.150.170.21', '62.31.244.147', '82.71.43.40', '77.98.166.200'],
+                   'uhkd': ['209.146.104.69', '223.255.177.202', '119.9.73.44', '42.3.117.64', '221.126.236.36', '113.255.5.34', '219.78.193.143', '72.255.228.180'],
+                   'uidr': ['103.159.195.156', '124.40.249.202', '103.189.197.81', '202.43.162.37', '103.147.76.65', '103.3.213.17', '103.111.29.102', '202.55.161.17'],
+                   'uinr': ['136.232.85.66', '115.98.145.166', '120.59.16.25', '182.18.187.27', '182.156.154.150', '36.50.50.50', '175.101.8.251', '115.97.193.195'],
+                   'ujpy': ['203.141.131.66', '116.80.58.204', '125.206.12.134', '118.3.227.163', '121.119.170.152', '116.91.115.190', '217.178.113.53', '121.107.13.224'],
+                   'ukrw': ['210.118.170.15', '121.166.66.139', '222.97.189.7', '27.126.19.30', '119.56.228.48', '59.29.114.72', '210.106.213.69', '112.185.179.12'],
+                   'umyr': ['103.173.114.104', '49.236.193.35', '123.253.33.86', '103.169.90.58', '211.25.202.171', '183.171.9.237', '58.71.196.96', '203.176.144.12'],
+                   'unok': ['217.168.95.249', '88.88.141.239', '81.175.38.1', '85.200.247.5', '79.161.86.212', '89.162.60.40', '178.23.102.48', '85.89.0.89'],
+                   'uphp': ['27.110.152.250', '210.5.72.2', '112.198.179.23', '155.137.127.22', '115.146.170.75', '58.69.197.2', '124.6.167.108', '206.62.42.19'],
+                   'usdr': ['46.59.22.19', '83.253.190.231', '77.53.225.88', '130.244.126.100', '91.190.142.200', '85.11.24.148', '81.170.202.134', '188.149.226.3'],
+                   'usek': ['213.165.181.14', '84.255.35.91', '84.255.41.14', '195.158.87.192', '194.105.32.2', '195.158.94.17', '84.255.32.87', '213.165.169.162'],
+                   'uthb': ['61.7.231.22', '110.49.24.138', '110.49.26.197', '61.19.146.204', '118.174.65.213', '61.7.143.128', '202.28.35.169', '110.78.165.53'],
+                   'uusd': ['204.106.240.53', '108.179.34.214', '162.243.184.122', '72.14.119.153', '50.223.52.23', '65.144.94.241', '137.184.80.190', '74.112.213.130']}
         for line in ip_index:
             devices.append(f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}")
             devices.append(f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}")
@@ -800,6 +928,18 @@ def lan_scan():
         devices.append('192.168.1.1')
         devices.append('192.168.1.164')
         devices.append('192.168.1.157')
+        net_min_list = net_dic.get(net_min)
+        net_max_list = net_dic.get(net_max)
+        try:
+            for line in net_min_list:
+                devices.append(line)
+        except:
+            print(f"Need to add {net_min} to Lan Scan")
+        try:
+            for line in net_max_list:
+                devices.append(line)
+        except:
+            print(f"Need to add {net_max} to Lan Scan")
         lan_list = []
         with ThreadPoolExecutor(max_workers=8) as executor:
             futures = {executor.submit(measure, ip): ip for ip in devices}
@@ -911,6 +1051,14 @@ def main_adapter_engine(max_recheck, work, name, ipv):
     except Exception as e:
         print('Main Adapter Engine Issues:', e)
         traceback.print_exc()
+def cmd_mtu():
+    try:
+        result = subprocess.run(["powershell", "-Command", "Get-NetIPInterface | Format-Table InterfaceAlias,AddressFamily,NlMtu,ConnectionState"], capture_output=True, text=True)
+        print(result.stdout)
+        if result.stderr:
+            print("STDERR:", result.stderr)
+    except Exception as e:
+        print('CMD MTU Issues:', e)
 def display_error():
     try:
         print('So the connection dropped, rubbish.')
@@ -957,18 +1105,19 @@ def wait_engine(name, ipv):
     try:
         iox = loads(f"{name}.json")
         iox_len = len(iox)
+        print('')
+        print(f"Verify you ran CMD in Admin. Data Set: {iox_len}")
+        print('')
         if iox_len > 5500:
             ioz = loads(f"{name}_quick.json")
-            b_dic = {}
             for line in ioz:
-                best = ioz.get(line)
-                b = change_mtu(name, ipv, best)
-                b_dic[line] = b
-            for line in b_dic:
-                print(line, b_dic.get(line))
-            print(f"{name} Waiting 4 hours")
+                print(line, ioz.get(line))
+                ba = change_mtu(line, ipv, ioz.get(line))
+            cmd_mtu()
             gc.collect()
-            time.sleep(14400)
+            time.sleep(300)
+        else:
+            cmd_mtu()
     except Exception as e:
         print('Wait Engine Issues:', e)
 def main():
