@@ -1018,35 +1018,62 @@ def pair_mode_engine2(max_recheck, name, b, ipv, n, interface_list):
         #pair_mode_settings(name, b, ipv, n, interface_list, 1)
     except Exception as e:
         print('Pair Mode Engine 2 Issues:', e)
-def main_adapter_engine(max_recheck, work, name, ipv):
+def main_adapter_engine(max_recheck, work, name, ipv, pair_mode):
     try:
         v1 = work
-        iop = loads(f"{name}_pairmode.json")
-        v2 = []
-        #v2 = list(set([values[1] for values in iop.values()]))
-        for line in iop:
+        if pair_mode == 1:
+            iop = loads(f"{name}_pairmode.json")
+            v2 = []
+            #v2 = list(set([values[1] for values in iop.values()]))
+            for line in iop:
+                try:
+                    v2.append(int(iop.get(line)[1]))
+                except:
+                    pass
+            v2 = list(set(v2))
             try:
-                v2.append(int(iop.get(line)[1]))
-            except:
+                for line in v2:
+                    if line in work:
+                        v1.remove(line)
+            except Exception as e:
                 pass
-        v2 = list(set(v2))
-        try:
-            for line in v2:
-                if line in work:
-                    v1.remove(line)
-        except Exception as e:
-            pass
-        ioz = loads(f"{name}_quick.json")
-        main_best = ioz.get(next(iter(ioz)))
-        if max_recheck == 0:
-            if len(v1) > 1:
-                print(f"{name} MTU To Process", len(v1))
-                main_best = random.choice(v1)
-                b = change_mtu(name, ipv, main_best)
+            ioz = loads(f"{name}_quick.json")
+            main_best = ioz.get(next(iter(ioz)))
+            if max_recheck == 0:
+                if len(v1) > 1:
+                    print(f"{name} MTU To Process", len(v1))
+                    main_best = random.choice(v1)
+                    b = change_mtu(name, ipv, main_best)
+                else:
+                    b = change_mtu(name, ipv, main_best)
             else:
                 b = change_mtu(name, ipv, main_best)
         else:
-            b = change_mtu(name, ipv, main_best)
+            iox = loads(f"{name}.json")
+            v2 = []
+            #main_best = ioz.get(next(iter(ioz)))
+            for line in iox:
+                try:
+                    v2.append(int(iox.get(line)[1]))
+                except:
+                    pass
+            v2 = list(set(v2))
+            try:
+                for line in v2:
+                    if line in work:
+                        v1.remove(line)
+            except Exception as e:
+                pass
+            main_best = multiple_avg_data(iox, 0, 7, 'max')
+            if max_recheck == 0:
+                if len(v1) > 1:
+                    print(f"{name} MTU To Process", len(v1))
+                    main_best = random.choice(v1)
+                    b = change_mtu(name, ipv, main_best)
+                else:
+                    b = change_mtu(name, ipv, main_best)
+            else:
+                b = change_mtu(name, ipv, main_best)
         print(f"{name} Trying: {main_best}")
     except Exception as e:
         print('Main Adapter Engine Issues:', e)
@@ -1285,8 +1312,8 @@ def main():
                             #MTU Extra Devices
                             pair_mode_engine(max_recheck, name, ipv, device_list_work)
                             #print("Completed: Pair Mode Engine")
-                            #Pair Mode Settings
-                        main_adapter_engine(max_recheck, work, name, ipv)
+                        # Main Adapter has Pair Mode Settings
+                        main_adapter_engine(max_recheck, work, name, ipv, pair_mode)
                         #print('Completed: Main Adapter Engine')
                         #print()
                         #if max_recheck > 3:
