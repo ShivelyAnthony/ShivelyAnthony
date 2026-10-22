@@ -527,7 +527,7 @@ def get_mtu(name, ipv):
         return(0)
 def change_mtu(name, ipv, mtu):
     try:
-        command = (f'Set-NetIPInterface -InterfaceAlias "{name}" ' f'-AddressFamily {'IPV6'} -NlMtuBytes {mtu}')
+        command = (f'Set-NetIPInterface -InterfaceAlias "{name}" ' f'-AddressFamily IPV6 -NlMtuBytes {mtu}')
         # command = ["powershell.exe", "-NoProfile", "-Command", f'Set-NetIPInterface -InterfaceAlias "{name}" ' f'-AddressFamily {ipv} -NlMtuBytes {mtu}']
         result = subprocess.run(["powershell.exe", "-NoProfile", "-Command", command], capture_output=True, text=True)
         command = (f'Set-NetIPInterface -InterfaceAlias "{name}" ' f'-AddressFamily {ipv} -NlMtuBytes {mtu}')
@@ -1113,11 +1113,11 @@ def wait_engine(name, ipv):
             for line in ioz:
                 print(line, ioz.get(line))
                 ba = change_mtu(line, ipv, ioz.get(line))
-            cmd_mtu()
             gc.collect()
-            time.sleep(300)
-        else:
-            cmd_mtu()
+        if iox_len > 50:
+            iox_wait = (iox_len // 2)
+            time.sleep(iox_wait)
+        cmd_mtu()
     except Exception as e:
         print('Wait Engine Issues:', e)
 def main():
@@ -1135,6 +1135,9 @@ def main():
         print('')
         interfaces = list(psutil.net_if_addrs().keys())
         print(interfaces)
+        pair_mode = 0
+        max_buffer_dic = {}
+        device_list_work = {}
         rto_min = int(input('Min RTO: '))
         rto_max = int(input('Max RTO: '))
         syn_max = int(input('Max SYN: '))
@@ -1162,7 +1165,8 @@ def main():
                 print('5: IPV4 576 => 1500 (Standard Frame) Steps of 64')
                 print('6: IPV4 576 => 1500 (Standard Frame) Steps of 32')
                 print('7: IPV4 576 => 1500 (Standard Frame) Steps of 8')
-                print('8: IPV4 576 => 1500 (Standard Frame) Steps of 1')
+                print('8: IPV4 576 => 1500 (Standard Frame) Steps of 2')
+                print('9: IPV4 576 => 1500 (Standard Frame) Steps of 1')
                 print('########################################')
                 print('')
                 a = str(input('Choice: '))
@@ -1196,6 +1200,11 @@ def main():
                     end_range = 9014
                     start_range = 576
                 elif a == '8':
+                    ipv = 'IPV4'
+                    step_range = 2
+                    end_range = 1500
+                    start_range = 576
+                elif a == '9':
                     ipv = 'IPV4'
                     step_range = 1
                     end_range = 1500
