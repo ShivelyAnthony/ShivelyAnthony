@@ -1064,7 +1064,7 @@ def main_adapter_engine(max_recheck, work, name, ipv, pair_mode):
                         v1.remove(line)
             except Exception as e:
                 pass
-            main_best = multiple_avg_data(iox, 0, 7, 'max')
+            main_best = multiple_avg_data(iox, 1, 7, 'max')
             if max_recheck == 0:
                 if len(v1) > 1:
                     print(f"{name} MTU To Process", len(v1))
