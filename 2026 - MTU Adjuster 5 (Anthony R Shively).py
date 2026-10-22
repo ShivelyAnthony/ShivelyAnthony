@@ -1334,6 +1334,8 @@ def main():
                                 print('Run As Admin')
                                 admin_error = 0
                         max_recheck = (max_recheck + 1)
+                        if max_recheck > 4:
+                            max_recheck = 0
                         do_once = 1
                         wait_engine(name, ipv)
                 except KeyboardInterrupt:
