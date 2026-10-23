@@ -33,3 +33,5 @@ Above go together >>> (Plot.png + Graph.py + MTU v3/4/5 + cpu_task.py)
 CMD>>> adb shell am start -n io.anyfi.cosmos/.SplashActivity
 
 [https://www.amd.com/en/developer/aocl/eula/aocl-5-3-eula.html?filename=AOCL_Windows-setup-5.3.0-AMD.exe](https://www.amd.com/en/developer/aocl.html)
+https://www.amd.com/en/developer/uprof.html
+
