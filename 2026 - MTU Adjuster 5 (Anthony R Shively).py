@@ -527,7 +527,8 @@ def get_mtu(name, ipv):
         return(0)
 def change_mtu(name, ipv, mtu):
     try:
-        command = (f'Set-NetIPInterface -InterfaceAlias "{name}" ' f'-AddressFamily IPV6 -NlMtuBytes {mtu}')
+        ipv6x = 'IPv6'
+        command = (f'Set-NetIPInterface -InterfaceAlias "{name}" ' f'-AddressFamily "{ipv6x}" -NlMtuBytes {mtu}')
         # command = ["powershell.exe", "-NoProfile", "-Command", f'Set-NetIPInterface -InterfaceAlias "{name}" ' f'-AddressFamily {ipv} -NlMtuBytes {mtu}']
         result = subprocess.run(["powershell.exe", "-NoProfile", "-Command", command], capture_output=True, text=True)
         command = (f'Set-NetIPInterface -InterfaceAlias "{name}" ' f'-AddressFamily {ipv} -NlMtuBytes {mtu}')
@@ -779,7 +780,6 @@ def multiple_avg_data(iox, multiple, value_x, type):
         return(v1_best)
     except Exception as e:
         print('Multiple Avg Data Issues:', e)
-        return(1500)
 # Run intilization Devices + Current Adapter as a list
 def get_buffer(name, type):
     try:
@@ -1135,16 +1135,16 @@ def wait_engine(name, ipv):
         print('')
         print(f"Verify you ran CMD in Admin. Data Set: {iox_len}")
         print('')
-        if iox_len > 5500:
-            ioz = loads(f"{name}_quick.json")
-            for line in ioz:
-                print(line, ioz.get(line))
-                ba = change_mtu(line, ipv, ioz.get(line))
-            gc.collect()
+        #if iox_len > 5500:
+        ioz = loads(f"{name}_quick.json")
+        for line in ioz:
+            print(line, ioz.get(line))
+            ba = change_mtu(line, ipv, ioz.get(line))
+        gc.collect()
+        cmd_mtu()
         if iox_len > 50:
             iox_wait = (iox_len // 2)
             time.sleep(iox_wait)
-        cmd_mtu()
     except Exception as e:
         print('Wait Engine Issues:', e)
 def main():
@@ -1165,9 +1165,15 @@ def main():
         pair_mode = 0
         max_buffer_dic = {}
         device_list_work = {}
-        rto_min = int(input('Min RTO: '))
-        rto_max = int(input('Max RTO: '))
-        syn_max = int(input('Max SYN: '))
+        rto_win = input('Windows Y/N:')
+        if rto_win == 'y':
+            rto_min = 300
+            rto_max = 2000
+            syn_max = 4
+        else:
+            rto_min = int(input('Min RTO: '))
+            rto_max = int(input('Max RTO: '))
+            syn_max = int(input('Max SYN: '))
         rto_work = list(range(rto_min, (rto_max + 10), 10))
         syn_work = list(range(1, (syn_max + 1), 1))
         for name in interfaces:
