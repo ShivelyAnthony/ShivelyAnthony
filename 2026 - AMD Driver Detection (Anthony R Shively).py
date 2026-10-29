@@ -7,6 +7,15 @@ import re
 print('')
 #result = subprocess.run("ipconfig", shell=True, capture_output=True, text=True)
 #print(result.stdout)
+
+out = subprocess.check_output(
+    ["powershell", "-NoProfile", "-Command",
+     "Get-PnpDevice -Class Display | Select-Object FriendlyName, InstanceId"],
+    text=True
+)
+print(out)
+print('')
+
 try:
     result = subprocess.run( ["pnputil", "/enum-drivers"], capture_output=True, text=True, encoding="utf-8", errors="replace" )
     lines = result.stdout.splitlines()
