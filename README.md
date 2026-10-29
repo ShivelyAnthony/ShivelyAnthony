@@ -28,6 +28,7 @@ FastSendDatagramThreshold 9000 (IP MTU L3)
 Get-NetAdapter | Select-Object Name, InterfaceGuid, InterfaceDescription
 
 chrome://gpu
+https://www.intel.com/content/www/us/en/developer/tools/oneapi/oneapi-toolkit-download.html
 
 
 Above go together >>> (Plot.png + Graph.py + MTU v3/4/5 + cpu_task.py)
