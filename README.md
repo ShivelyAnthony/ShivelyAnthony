@@ -38,3 +38,6 @@ CMD>>> adb shell am start -n io.anyfi.cosmos/.SplashActivity
 [https://www.amd.com/en/developer/aocl/eula/aocl-5-3-eula.html?filename=AOCL_Windows-setup-5.3.0-AMD.exe](https://www.amd.com/en/developer/aocl.html)
 https://www.amd.com/en/developer/uprof.html
 
+https://anaconda.org/channels/anaconda/packages/conda/overview
+conda create -n dpnp-env -c https://software.repos.intel.com/python/conda/ -c conda-forge dpnp
+
