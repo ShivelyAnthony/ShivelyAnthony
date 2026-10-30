@@ -39,5 +39,5 @@ CMD>>> adb shell am start -n io.anyfi.cosmos/.SplashActivity
 https://www.amd.com/en/developer/uprof.html
 
 https://anaconda.org/channels/anaconda/packages/conda/overview
-conda create -n dpnp-env -c https://software.repos.intel.com/python/conda/ -c conda-forge dpnp
+>>> conda create -n dpnp-env -c https://software.repos.intel.com/python/conda/ -c conda-forge dpnp
 
